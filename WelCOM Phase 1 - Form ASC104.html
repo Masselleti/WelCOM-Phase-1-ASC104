@@ -351,13 +351,13 @@
         .ma-hl-btn:active { transform: scale(0.9); }
         @media (min-width: 768px) { .ma-hl-btn:hover { transform: scale(1.3); border-color: var(--text-strong); z-index: 2; } }
 
-        .ma-hl-btn.yellow { background: #fde047; } .ma-hl-btn.green { background: #4ade80; } .ma-hl-btn.blue { background: #60a5fa; } .ma-hl-btn.pink { background: #f472b6; } .ma-hl-btn.orange { background: #fb923c; } .ma-hl-btn.purple { background: #c084fc; }
-        .ma-hl-clear { margin-left: 6px; padding-left: 12px; border-left: 2px solid var(--border); font-size: 13px; font-weight: 800; color: var(--danger); cursor: pointer; transition: color 0.2s; display: flex; align-items: center; height: 24px; }
+        .ma-hl-btn.yellow { background: #ffe36f; } .ma-hl-btn.green { background: #8adf8a; } .ma-hl-btn.blue { background: #7cb5ff; }
+        .ma-hl-clear { margin-left: 6px; padding-left: 12px; border-left: 2px solid var(--border); font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: color 0.2s; display: flex; align-items: center; height: 24px; }
         .ma-hl-clear:active { opacity: 0.5; }
-        @media (min-width: 768px) { .ma-hl-clear:hover { color: #be123c; } }
+        @media (min-width: 768px) { .ma-hl-clear:hover { color: var(--text-strong); } }
 
-        .hl-yellow { background-color: rgba(253, 224, 71, 0.6); border-radius: 3px; padding: 2px 0; color: inherit; } .hl-green { background-color: rgba(74, 222, 128, 0.6); border-radius: 3px; padding: 2px 0; color: inherit; } .hl-blue { background-color: rgba(96, 165, 250, 0.6); border-radius: 3px; padding: 2px 0; color: inherit; } .hl-pink { background-color: rgba(244, 114, 182, 0.6); border-radius: 3px; padding: 2px 0; color: inherit; } .hl-orange { background-color: rgba(251, 146, 60, 0.6); border-radius: 3px; padding: 2px 0; color: inherit; } .hl-purple { background-color: rgba(192, 132, 252, 0.6); border-radius: 3px; padding: 2px 0; color: inherit; }
-        html.dark .hl-yellow { background-color: rgba(250, 204, 21, 0.4); color: #fff; } html.dark .hl-green { background-color: rgba(74, 222, 128, 0.4); color: #fff; } html.dark .hl-blue { background-color: rgba(56, 189, 248, 0.4); color: #fff; } html.dark .hl-pink { background-color: rgba(244, 114, 182, 0.4); color: #fff; } html.dark .hl-orange { background-color: rgba(251, 146, 60, 0.4); color: #fff; } html.dark .hl-purple { background-color: rgba(192, 132, 252, 0.4); color: #fff; }
+        .hl-yellow { background-color: #fff6a7; border-radius: 3px; padding: 0; color: #1f2937; } .hl-green { background-color: #c8f7c5; border-radius: 3px; padding: 0; color: #1f2937; } .hl-blue { background-color: #cfe9ff; border-radius: 3px; padding: 0; color: #1f2937; }
+        html.dark .hl-yellow { background-color: #fff6a7; color: #1f2937; } html.dark .hl-green { background-color: #c8f7c5; color: #1f2937; } html.dark .hl-blue { background-color: #cfe9ff; color: #1f2937; }
 
         /* ZEN MODE */
         body.zen-mode .topbar, body.zen-mode .navigation { transform: translateY(-100%); opacity: 0; pointer-events: none; }
@@ -1472,10 +1472,7 @@
         <div class="ma-hl-btn yellow" onclick="maApplyHighlight('hl-yellow')"></div>
         <div class="ma-hl-btn green" onclick="maApplyHighlight('hl-green')"></div>
         <div class="ma-hl-btn blue" onclick="maApplyHighlight('hl-blue')"></div>
-        <div class="ma-hl-btn pink" onclick="maApplyHighlight('hl-pink')"></div>
-        <div class="ma-hl-btn orange" onclick="maApplyHighlight('hl-orange')"></div>
-        <div class="ma-hl-btn purple" onclick="maApplyHighlight('hl-purple')"></div>
-        <span class="ma-hl-clear" onclick="maClearHighlights()">✖</span>
+                <span class="ma-hl-clear" onclick="maClearHighlights()">Clear</span>
     </div>
 
     <div class="ma-lock-overlay ma-hide" id="ma-lock-overlay">
