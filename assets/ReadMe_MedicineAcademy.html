@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Medicine Academy – Offline QBank Installer Guide</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --ma-primary: #0b4a6f;
+      --ma-accent: #aadef5;
+      --ma-bg: #f4f7fb;
+      --ma-card-bg: #ffffff;
+      --ma-text: #1f2933;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top left, #e2f3ff, #f7f9fc);
+      color: var(--ma-text);
+      line-height: 1.6;
+      padding: 30px 12px;
+    }
+
+    .ma-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .ma-card {
+      position: relative;
+      border-radius: 20px;
+      padding: 28px 22px 26px;
+      background: var(--ma-card-bg);
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+      overflow: hidden;
+    }
+
+    .ma-card::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(170, 222, 245, 0.9), rgba(11, 74, 111, 0.9));
+      z-index: -2;
+    }
+
+    .ma-card::after {
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 18px;
+      background: #ffffff;
+      z-index: -1;
+    }
+
+    .ma-card-decoration {
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(170, 222, 245, 0.45), transparent 70%);
+      top: -60px;
+      right: -60px;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .ma-card-decoration-bottom {
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 70% 70%, rgba(11, 74, 111, 0.16), transparent 70%);
+      bottom: -70px;
+      left: -40px;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .ma-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ma-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #ffffff, #0b4a6f);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 3px rgba(170, 222, 245, 0.75);
+    }
+
+    .ma-title-block h1 {
+      font-size: 22px;
+      color: var(--ma-primary);
+      margin-bottom: 4px;
+    }
+
+    .ma-title-block p {
+      font-size: 13px;
+      color: #4b5563;
+    }
+
+    .ma-badge-row {
+      margin: 10px 0 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ma-badge {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(11, 74, 111, 0.25);
+      color: var(--ma-primary);
+      background: rgba(170, 222, 245, 0.15);
+      backdrop-filter: blur(2px);
+    }
+
+    .ma-exe-pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #e5e7eb;
+      border: 1px solid rgba(15, 23, 42, 0.4);
+      font-family: Consolas, "Courier New", monospace;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ma-exe-label {
+      opacity: 0.75;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 10px;
+    }
+
+    .ma-hero-note {
+      background: linear-gradient(120deg, rgba(11, 74, 111, 0.06), rgba(170, 222, 245, 0.3));
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #111827;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      position: relative;
+      z-index: 1;
+    }
+
+    .ma-hero-note-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .ma-section {
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.7);
+      position: relative;
+      z-index: 1;
+    }
+
+    .ma-section:last-of-type {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    .ma-section h2 {
+      font-size: 18px;
+      color: var(--ma-primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ma-section h2 span.ma-section-tag {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7280;
+    }
+
+    .ma-section p {
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .ma-list {
+      margin: 6px 0 4px 0;
+      padding-left: 18px;
+      font-size: 13px;
+    }
+
+    .ma-list li {
+      margin-bottom: 3px;
+    }
+
+    .ma-steps {
+      margin-top: 6px;
+    }
+
+    .ma-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 7px;
+      font-size: 13px;
+    }
+
+    .ma-step-number {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--ma-primary);
+      color: #ffffff;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(170, 222, 245, 0.9);
+    }
+
+    .ma-step-text {
+      flex: 1;
+    }
+
+    .ma-code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin: 6px 0;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .ma-highlight {
+      font-weight: bold;
+      color: var(--ma-primary);
+    }
+
+    .ma-support-box {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(11, 74, 111, 0.035);
+      border: 1px solid rgba(148, 163, 184, 0.55);
+      font-size: 12px;
+    }
+
+    .ma-support-box strong {
+      color: var(--ma-primary);
+    }
+
+    .ma-footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 11px;
+      color: #6b7280;
+      position: relative;
+      z-index: 1;
+    }
+
+    .ma-footer a {
+      color: var(--ma-primary);
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(11, 74, 111, 0.4);
+    }
+
+    .ma-footer a:hover {
+      opacity: 0.85;
+    }
+
+    @media (max-width: 600px) {
+      .ma-card {
+        padding: 22px 16px 22px;
+      }
+
+      .ma-title-block h1 {
+        font-size: 20px;
+      }
+
+      .ma-header {
+        align-items: flex-start;
+      }
+
+      .ma-badge-row {
+        gap: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ma-container">
+    <div class="ma-card">
+      <div class="ma-card-decoration"></div>
+      <div class="ma-card-decoration-bottom"></div>
+
+      <!-- Header -->
+      <header class="ma-header">
+        <div class="ma-logo">MA</div>
+        <div class="ma-title-block">
+          <h1>Offline QBank Installer Guide</h1>
+          <p>Medicine Academy &mdash; Advanced Medical Exam Preparation</p>
+        </div>
+      </header>
+
+      <!-- Badges -->
+      <div class="ma-badge-row">
+        <div class="ma-badge">Windows Only</div>
+        <div class="ma-badge">Offline Exam System</div>
+        <div class="ma-badge">No Internet Required After Install</div>
+        <div class="ma-exe-pill">
+          <span class="ma-exe-label">Installer</span>
+          <span>AMBOSS_Step2_Qbank_2025.exe</span>
+        </div>
+      </div>
+
+      <!-- Hero Note -->
+      <div class="ma-hero-note">
+        <div class="ma-hero-note-icon">ℹ️</div>
+        <div>
+          <strong>Read this first:</strong> This guide explains how to correctly install and run your offline QBank.
+          Some antivirus tools or Windows SmartScreen may show warnings for new, unsigned offline software.
+          This is expected behavior. You can temporarily allow or whitelist the installer during setup, then
+          turn your antivirus protection back on after installation is complete.
+        </div>
+      </div>
+
+      <!-- Section 1: Requirements -->
+      <section class="ma-section">
+        <h2>1. System Requirements <span class="ma-section-tag">before you install</span></h2>
+        <ul class="ma-list">
+          <li>Windows 10 or Windows 11 (64-bit recommended)</li>
+          <li>At least <span class="ma-highlight">2 GB of free disk space</span></li>
+          <li>Administrator privileges to install applications</li>
+          <li>Internet connection is <span class="ma-highlight">not required</span> after installation</li>
+          <li>Antivirus or Windows Defender may show a warning for the installer. You can temporarily allow it or
+            disable real-time protection during the installation, and enable it again once the QBank is installed.</li>
+        </ul>
+      </section>
+
+      <!-- Section 2: Install Steps -->
+      <section class="ma-section">
+        <h2>2. Installation Steps <span class="ma-section-tag">step by step</span></h2>
+        <p>Follow these steps to install the offline QBank on your PC:</p>
+
+        <div class="ma-steps">
+          <div class="ma-step">
+            <div class="ma-step-number">1</div>
+            <div class="ma-step-text">
+              <span class="ma-highlight">Download</span> the installer file and save it to a trusted folder
+              (for example: Desktop or Downloads). If the file came inside a ZIP archive, extract all files first.
+            </div>
+          </div>
+
+          <div class="ma-step">
+            <div class="ma-step-number">2</div>
+            <div class="ma-step-text">
+              <span class="ma-highlight">Right–click → "Run as administrator"</span> on the installer file, for example:
+              <div class="ma-code">
+AMBOSS_Step2_Qbank_2025.exe
+              </div>
+            </div>
+          </div>
+
+          <div class="ma-step">
+            <div class="ma-step-number">3</div>
+            <div class="ma-step-text">
+              If Windows SmartScreen shows a blue warning window:
+              <ul class="ma-list">
+                <li>Click <strong>"More info"</strong></li>
+                <li>Then click <strong>"Run anyway"</strong></li>
+              </ul>
+              This is normal behavior for newly installed offline exam software.
+            </div>
+          </div>
+
+          <div class="ma-step">
+            <div class="ma-step-number">4</div>
+            <div class="ma-step-text">
+              If your antivirus or Windows Defender blocks the file:
+              <ul class="ma-list">
+                <li>Open your security center and choose <strong>"Allow" / "Restore" / "Keep anyway"</strong> for the installer.</li>
+                <li>You may temporarily turn off real-time protection <strong>only during the installation</strong>,</li>
+                <li>After installation is finished, turn your antivirus protection back on and keep the installed folder in the allow list.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="ma-step">
+            <div class="ma-step-number">5</div>
+            <div class="ma-step-text">
+              Follow the installation wizard:
+              <ul class="ma-list">
+                <li>Choose your installation folder (default is recommended)</li>
+                <li>Optionally create a Desktop shortcut</li>
+                <li>Click <strong>"Install"</strong> and wait for the process to complete</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="ma-step">
+            <div class="ma-step-number">6</div>
+            <div class="ma-step-text">
+              Click <strong>"Finish"</strong> to close the installer. You can choose to launch the QBank immediately after installation.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Running the QBank -->
+      <section class="ma-section">
+        <h2>3. Running the QBank <span class="ma-section-tag">after installation</span></h2>
+        <p>After installation, you can open the QBank in any of the following ways:</p>
+        <ul class="ma-list">
+          <li>Use the Desktop shortcut created by the installer (for example: <strong>"Medicine Academy – QBank"</strong>)</li>
+          <li>Open the Start Menu and search for <strong>"Medicine Academy"</strong></li>
+        </ul>
+        <p>
+          When launched, the application will automatically load all required HTML, JS, and data files from the installed
+          <span class="ma-highlight">Data</span> and <span class="ma-highlight">js</span> folders. No manual configuration is needed.
+        </p>
+      </section>
+
+      <!-- Section 4: Troubleshooting -->
+      <section class="ma-section">
+        <h2>4. Troubleshooting <span class="ma-section-tag">common issues</span></h2>
+
+        <p><strong>Issue A – The program does not open at all</strong></p>
+        <ul class="ma-list">
+          <li>Make sure the installation completed successfully without errors.</li>
+          <li>Open the installation folder (for example:
+            <span class="ma-highlight">C:\Program Files\MedicineAcademy\...</span>) and verify that you see:
+            <ul class="ma-list" style="margin-top: 4px;">
+              <li>The main QBank executable</li>
+              <li>A <code>Data</code> folder</li>
+              <li>A <code>js</code> folder (or <code>assets</code> folder for some engines)</li>
+              <li><code>index.html</code> file</li>
+            </ul>
+          </li>
+          <li>If any of these are missing, reinstall the QBank using the installer.</li>
+        </ul>
+
+        <p style="margin-top: 10px;"><strong>Issue B – Windows Defender or antivirus blocks the app</strong></p>
+        <ul class="ma-list">
+          <li>This QBank uses a local HTML/JS engine and database, which can sometimes trigger false–positive alerts.</li>
+          <li>Open your antivirus or Windows Security → find the blocked file → choose <strong>"Allow" / "Restore" / "Allow on this device"</strong>.</li>
+          <li>You may temporarily disable real-time protection while running the installer, then enable it again after installation.</li>
+          <li>Add the installation folder to the <strong>Exclusions / Allow list</strong> if necessary.</li>
+        </ul>
+
+        <p style="margin-top: 10px;"><strong>Issue C – Blank window or content not loading</strong></p>
+        <ul class="ma-list">
+          <li>Close the application completely and run it again.</li>
+          <li>Ensure that antivirus software has not removed any files from the <code>Data</code> or <code>js</code>/<code>assets</code> folders.</li>
+          <li>Reinstall the QBank if required.</li>
+        </ul>
+
+        <div class="ma-support-box">
+          <strong>Still having issues?</strong><br />
+          Please contact Medicine Academy Support and include:
+          <ul class="ma-list" style="margin-top: 4px;">
+            <li>Your Windows version (e.g. Windows 11 Pro 64-bit)</li>
+            <li>A screenshot of any error message</li>
+            <li>A screenshot of the installation folder</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Section 5: Android Version -->
+      <section class="ma-section">
+        <h2>5. Android Version (if included) <span class="ma-section-tag">APK installation</span></h2>
+        <p>
+          If your package contains an Android version (APK file), you can install it on your phone or tablet as follows:
+        </p>
+        <ul class="ma-list">
+          <li>Copy the APK file (for example: <span class="ma-highlight">AMBOSS_Step2_Qbank_2025.apk</span>) to your Android device.</li>
+          <li>On your phone, open <strong>Settings → Security</strong> or <strong>Apps &amp; notifications</strong>.</li>
+          <li>Allow installation from <strong>"Unknown sources"</strong> or enable <strong>"Install unknown apps"</strong> for the app you use to open the file (for example: Chrome, Files, or your file manager).</li>
+          <li>Open the APK file and tap <strong>Install</strong>.</li>
+          <li>If Google Play Protect shows a warning, tap <strong>"More details"</strong> then <strong>"Install anyway"</strong>, provided you downloaded the file directly from Medicine Academy.</li>
+        </ul>
+        <p>
+          Once installed, the Android QBank runs fully offline. You can later disable <strong>Install unknown apps</strong> again if you prefer.
+        </p>
+      </section>
+
+      <!-- Section 6: License & Important Notice -->
+      <section class="ma-section">
+        <h2>6. License & Important Notice <span class="ma-section-tag">please read</span></h2>
+        <p>
+          This offline QBank is licensed for <span class="ma-highlight">individual, personal exam preparation use only.</span>
+        </p>
+        <ul class="ma-list">
+          <li>Re–distribution, re–uploading, sharing, or reselling this software is strictly prohibited.</li>
+          <li>Uploading the content to file–sharing sites, Telegram channels, or any public platform is not allowed.</li>
+          <li>Any violation of these terms may result in permanent license suspension.</li>
+        </ul>
+      </section>
+
+      <!-- Section 7: Support / Contact -->
+      <section class="ma-section">
+        <h2>7. Support & Contact <span class="ma-section-tag">we are here to help</span></h2>
+        <p>
+          For technical support, installation problems, or questions about your offline QBank access, please contact:
+        </p>
+        <ul class="ma-list">
+          <li>Email: <span class="ma-highlight">medicine.ac@gmail.com</span></li>
+          <li>Website: <a href="https://medicine.ac" target="_blank" rel="noopener noreferrer">https://medicine.ac</a></li>
+        </ul>
+        <p>Include your order ID and course name for faster assistance.</p>
+      </section>
+
+      <div class="ma-footer">
+        Medicine Academy &middot; Advanced Medical Education<br />
+        <a href="https://medicine.ac" target="_blank" rel="noopener noreferrer">Visit medicine.ac</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
