@@ -1084,6 +1084,34 @@
         .uw-bottom-tool.is-end { color: #000; }
         .uw-bottom-tool.is-end:hover { color: #333; }
 
+/* iPad / touch devices: let the question view scroll as a normal page so the
+   top bar + header move up when scrolling down. Desktop keeps the pinned,
+   exam-style shell (this only applies to touch-primary devices). */
+@media (hover: none) and (pointer: coarse) {
+    html:has(body.in-nbme-question), body.in-nbme-question {
+        height: auto !important; min-height: 100dvh !important; overflow: visible !important;
+    }
+    .nbme-skin.uw-skin {
+        position: static !important;
+        height: auto !important; min-height: 100dvh !important; max-height: none !important;
+        overflow: visible !important;
+        grid-template-rows: auto auto auto !important;
+        align-content: start !important;
+        padding-left: 100px !important;
+    }
+    .nbme-skin.uw-skin .uw-body { overflow: visible !important; }
+    /* Question navigator becomes a fixed left rail (out of normal flow) so it
+       can never inflate the page height -- this prevents scrolling into empty
+       space below the content. It stays visible and scrolls independently. */
+    .nbme-skin.uw-skin .uw-sidebar {
+        position: fixed !important; left: 0 !important; top: 0 !important;
+        width: 100px !important; min-width: 0 !important; max-width: none !important;
+        height: 100dvh !important; max-height: 100dvh !important;
+        overflow-y: auto !important; z-index: 30 !important;
+    }
+    .nbme-skin.uw-skin .uw-main { overflow-y: visible !important; height: auto !important; max-height: none !important; }
+}
+
         /* Reverse-color mode */
         .nbme-skin.uw-skin.nbme-reverse { background: #1a1a1a !important; }
         .nbme-skin.uw-skin.nbme-reverse .uw-main { background: #1a1a1a; color: #f1f1f1; }
