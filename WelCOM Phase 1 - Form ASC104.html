@@ -451,29 +451,6 @@
         .ma-footer { text-align: center; font-size: 13px; color: var(--muted); padding: 20px 16px; font-weight: 600; margin-top: auto; padding-bottom: 90px;}
         @media (min-width: 768px) { .ma-footer { padding-bottom: 24px;} }
 
-        /* Brand Guard overlay */
-        .ma-lock-overlay {
-          position:fixed;
-          inset:0;
-          z-index:99999999;
-          background:radial-gradient(circle at top, rgba(33, 174, 217, .85), #050913 65%);
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          padding:20px;
-          transition:opacity .4s ease;
-        }
-        .ma-lock-overlay.ma-hide { opacity:0; pointer-events:none; }
-        .ma-lock-box {
-          max-width:480px; width:100%; background:rgba(5,12,20,.96); border-radius:18px; padding:24px 24px 20px;
-          box-shadow:0 18px 45px rgba(0,0,0,.6); color:#e8f4ff; text-align:center;
-        }
-        .ma-lock-logo{ font-weight:700; letter-spacing:.16em; text-transform:uppercase; font-size:12px; color:#e8f4ff; margin-bottom:6px; }
-        .ma-lock-title{ font-size:1.4em; margin-bottom:10px; }
-        .ma-lock-text{ color:#ffffff; font-size:.95em; line-height:1.6; opacity:.9; margin-bottom:18px; }
-        .ma-lock-btn{ border:none; background:#2bb396; color:#fff; padding:10px 26px; border-radius:999px; font-weight:600; cursor:pointer; font-size:.95em; box-shadow:0 0 0 1px rgba(0,0,0,.35),0 10px 24px rgba(0,0,0,.55); transition:transform .15s ease, box-shadow .15s ease, filter .15s ease; }
-        .ma-lock-btn:hover{ filter:brightness(1.05); transform:translateY(-1px); box-shadow:0 0 0 1px rgba(0,0,0,.6),0 14px 32px rgba(0,0,0,.75); }
-
         /* ================= MOBILE OPTIMIZATIONS (MEDIA QUERIES) ================= */
         @media (max-width: 767px) {
             .container { max-width: 100%; width: 100%; overflow-x: hidden; }
@@ -1503,14 +1480,6 @@
                 <span class="ma-hl-clear" onclick="maClearHighlights()">Clear</span>
     </div>
 
-    <div class="ma-lock-overlay ma-hide" id="ma-lock-overlay">
-        <div class="ma-lock-box">
-            <div class="ma-lock-logo">Medicine Academy</div>
-            <div class="ma-lock-title">System Verified</div>
-            <div class="ma-lock-text" id="ma-lock-reason">Integrity check passed.</div>
-            <button class="ma-lock-btn" id="ma-lock-accept">Continue</button>
-        </div>
-    </div>
 
     <script src="assets/embedded-assets.js"></script>
     <script src="assets/js/sql-wasm.js"></script>
@@ -3324,57 +3293,6 @@
             hlPalette.addEventListener('touchstart', (e) => { e.preventDefault(); }, {passive:false});
         })();
 
-        // --- Security System ---
-        (function () {
-            const overlay = document.getElementById("ma-lock-overlay");
-            const btn = document.getElementById("ma-lock-accept");
-            if (!overlay) return;
-            function escapeHtml(str) { return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
-            function lockSystem(reason) {
-                const mainContainer = document.querySelector(".container");
-                if (mainContainer) {
-                    mainContainer.innerHTML = `
-                        <div style="padding: 32px 20px; text-align: center; color: #e8f4ff; margin: auto;">
-                            <h2 style="margin-bottom: 16px; font-size: 24px; color: var(--danger)">System Locked</h2>
-                            <p style="margin-bottom: 24px; font-size: 14px; line-height: 1.6;">
-                                This copy failed an integrity verification check.<br><br>
-                                Reason: ${escapeHtml(reason || "Header integrity check error.")}<br><br>
-                                Medicine Academy Protection System
-                            </p>
-                        </div>
-                    `;
-                }
-                overlay.style.display = "flex";
-                overlay.classList.remove("ma-hide");
-            }
-            function checkHeader() {
-                try {
-                    const brand = document.querySelector(".brand .title");
-                    if (!brand) return lockSystem("Brand title element is missing.");
-                    const text = (brand.textContent || "").toLowerCase();
-                    if (!(text.includes("medicine") && text.includes("academy"))) {
-                        lockSystem("Brand name was removed or altered.");
-                    }
-                    const logo = document.querySelector(".brand img");
-                    if (!logo) { lockSystem("Logo removed or replaced"); return; }
-                    const src = (logo.getAttribute("src") || "").toLowerCase();
-                    if (!src.includes("data/medicine-logo")) { lockSystem("Logo removed or replaced"); return; }
-                } catch(e) {
-                    lockSystem("Integrity verification error");
-                }
-            }
-            if (btn) {
-                btn.addEventListener("click", function () {
-                    overlay.classList.add("ma-hide");
-                    setTimeout(function () { overlay.style.display = "none"; }, 400);
-                });
-            }
-            window.addEventListener("load", function () {
-                setTimeout(checkHeader, 800);
-                setInterval(checkHeader, 10000);
-            });
-        })();
-    
         // Delegated click handler for hyperlinks in question/explanation areas (ported from UWorld).
         document.addEventListener('click', (e) => {
             const link = e.target.closest('a');
