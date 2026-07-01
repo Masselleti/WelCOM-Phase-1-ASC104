@@ -3273,9 +3273,20 @@
                 if (maDragSelecting) return;
                 const sel = window.getSelection();
                 if (!sel || sel.isCollapsed || sel.rangeCount === 0 || sel.toString().trim() === '') { hlPalette.style.display = 'none'; return; }
-                const range = sel.getRangeAt(0); let node = range.commonAncestorContainer; if (node.nodeType === 3) node = node.parentNode;
-                const validArea = node.closest('.question-stem, .option-text, .commentary-content');
-                if (!validArea) { hlPalette.style.display = 'none'; return; }
+                let range = sel.getRangeAt(0); let node = range.commonAncestorContainer; if (node.nodeType === 3) node = node.parentNode;
+                let validArea = node.closest('.question-stem, .option-text, .commentary-content');
+                if (!validArea) {
+                    // Dragging slightly past the end of a block (typical when selecting a whole
+                    // answer option) makes the native selection spill across the block boundary.
+                    // Clamp the range to the area the selection starts in instead of giving up.
+                    const startEl = range.startContainer.nodeType === 3 ? range.startContainer.parentNode : range.startContainer;
+                    const startArea = startEl.closest && startEl.closest('.question-stem, .option-text, .commentary-content');
+                    if (!startArea) { hlPalette.style.display = 'none'; return; }
+                    const clamped = range.cloneRange();
+                    clamped.setEnd(startArea, startArea.childNodes.length);
+                    if (clamped.toString().trim() === '') { hlPalette.style.display = 'none'; return; }
+                    range = clamped; validArea = startArea;
+                }
                 activeHlContainer = validArea; currentHlRange = range.cloneRange();
                 const rect = range.getBoundingClientRect();
                 // Measure while rendered-but-invisible: offsetWidth/Height are 0 while
@@ -3302,9 +3313,14 @@
             document.addEventListener('mouseup', () => maEndDragSelect(10), true);
             document.addEventListener('touchend', () => maEndDragSelect(200), true);
             document.addEventListener('touchcancel', () => { maDragSelecting = false; }, true);
+            // A native text drag (mousedown on an existing selection) ends with dragend, not
+            // mouseup, and a swallowed mouseup (e.g. app switch) delivers nothing - recover
+            // the flag on those paths too so the palette is never left suppressed.
+            document.addEventListener('dragend', () => maEndDragSelect(10), true);
+            window.addEventListener('blur', () => { maDragSelecting = false; });
             document.querySelector('.content').addEventListener('mouseup', (e) => { if (hlPalette.contains(e.target)) return; setTimeout(showPalette, 10); });
             document.querySelector('.content').addEventListener('touchend', (e) => { if (hlPalette.contains(e.target)) return; setTimeout(showPalette, 200); }, {passive: true});
-            document.addEventListener('mousedown', (e) => { if (!hlPalette.contains(e.target)) { maDragSelecting = true; hlPalette.style.display = 'none'; } });
+            document.addEventListener('mousedown', (e) => { if (e.button !== 0) return; if (!hlPalette.contains(e.target)) { maDragSelecting = true; hlPalette.style.display = 'none'; } });
             document.addEventListener('touchstart', (e) => { if (!hlPalette.contains(e.target)) { maDragSelecting = true; hlPalette.style.display = 'none'; } }, {passive:true});
             hlPalette.addEventListener('mousedown', (e) => { e.preventDefault(); });
             hlPalette.addEventListener('touchstart', (e) => { e.preventDefault(); }, {passive:false});
