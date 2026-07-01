@@ -342,7 +342,7 @@
         @media (min-width: 768px) { .fab-lab { right: 32px; bottom: 100px; width: 56px; height: 56px; font-size: 24px; } .fab-lab:hover { transform: scale(1.1) rotate(-5deg); } }
 
         /* HIGHLIGHTER */
-        #ma-hl-palette { position: absolute; display: none; padding: 8px 12px; background: var(--surface); border-radius: 999px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--border); z-index: 999999; align-items: center; gap: 8px; animation: hl-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(-120%); }
+        #ma-hl-palette { position: absolute; display: none; user-select: none; -webkit-user-select: none; padding: 8px 12px; background: var(--surface); border-radius: 999px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--border); z-index: 999999; align-items: center; gap: 8px; animation: hl-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(-120%); }
         html.dark #ma-hl-palette { background: #1e293b; border-color: #334155; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); }
         @media (min-width: 768px) { #ma-hl-palette { transform: none; } }
 
@@ -3264,7 +3264,13 @@
         let currentHlRange = null, activeHlContainer = null;
         (function () {
             const hlPalette = document.getElementById('ma-hl-palette');
+            // While a mouse/touch drag-selection is in progress the palette must stay hidden:
+            // it sits after the answer options in the DOM, so if it appears under the pointer
+            // mid-drag the browser maps the pointer to the palette's DOM position and the
+            // selection jumps across the rest of the question card and every answer choice.
+            let maDragSelecting = false;
             const showPalette = () => {
+                if (maDragSelecting) return;
                 const sel = window.getSelection();
                 if (!sel || sel.isCollapsed || sel.rangeCount === 0 || sel.toString().trim() === '') { hlPalette.style.display = 'none'; return; }
                 const range = sel.getRangeAt(0); let node = range.commonAncestorContainer; if (node.nodeType === 3) node = node.parentNode;
@@ -3272,23 +3278,34 @@
                 if (!validArea) { hlPalette.style.display = 'none'; return; }
                 activeHlContainer = validArea; currentHlRange = range.cloneRange();
                 const rect = range.getBoundingClientRect();
-                let top = rect.top + window.scrollY - hlPalette.offsetHeight - 14;
-                let left = rect.left + window.scrollX + (rect.width / 2) - (hlPalette.offsetWidth / 2);
+                // Measure while rendered-but-invisible: offsetWidth/Height are 0 while
+                // display:none, which used to drop the palette right onto the selected line.
+                hlPalette.style.visibility = 'hidden'; hlPalette.style.display = 'flex';
+                const palH = hlPalette.offsetHeight, palW = hlPalette.offsetWidth;
+                let top = rect.top + window.scrollY - palH - 14;
+                let left = rect.left + window.scrollX + (rect.width / 2) - (palW / 2);
                 if (top < window.scrollY + 10) top = rect.bottom + window.scrollY + 14;
                 if (left < 10) left = 10;
-                if (left + hlPalette.offsetWidth > window.innerWidth) left = window.innerWidth - hlPalette.offsetWidth - 10;
-                hlPalette.style.display = 'flex'; hlPalette.style.top = top + 'px'; hlPalette.style.left = left + 'px';
+                if (left + palW > window.innerWidth) left = window.innerWidth - palW - 10;
+                hlPalette.style.top = top + 'px'; hlPalette.style.left = left + 'px'; hlPalette.style.visibility = 'visible';
             };
 
             document.addEventListener('selectionchange', () => {
+                if (maDragSelecting) return;
                 if(document.activeElement && (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT')) return;
                 setTimeout(showPalette, 100);
             });
 
+            // End of a drag-selection: clear the flag first (capture phase) so the
+            // showPalette calls scheduled below actually run, wherever the release lands.
+            const maEndDragSelect = (delay) => { if (!maDragSelecting) return; maDragSelecting = false; setTimeout(showPalette, delay); };
+            document.addEventListener('mouseup', () => maEndDragSelect(10), true);
+            document.addEventListener('touchend', () => maEndDragSelect(200), true);
+            document.addEventListener('touchcancel', () => { maDragSelecting = false; }, true);
             document.querySelector('.content').addEventListener('mouseup', (e) => { if (hlPalette.contains(e.target)) return; setTimeout(showPalette, 10); });
             document.querySelector('.content').addEventListener('touchend', (e) => { if (hlPalette.contains(e.target)) return; setTimeout(showPalette, 200); }, {passive: true});
-            document.addEventListener('mousedown', (e) => { if (!hlPalette.contains(e.target) && window.getSelection().isCollapsed) hlPalette.style.display = 'none'; });
-            document.addEventListener('touchstart', (e) => { if (!hlPalette.contains(e.target) && window.getSelection().isCollapsed) hlPalette.style.display = 'none'; }, {passive:true});
+            document.addEventListener('mousedown', (e) => { if (!hlPalette.contains(e.target)) { maDragSelecting = true; hlPalette.style.display = 'none'; } });
+            document.addEventListener('touchstart', (e) => { if (!hlPalette.contains(e.target)) { maDragSelecting = true; hlPalette.style.display = 'none'; } }, {passive:true});
             hlPalette.addEventListener('mousedown', (e) => { e.preventDefault(); });
             hlPalette.addEventListener('touchstart', (e) => { e.preventDefault(); }, {passive:false});
         })();
