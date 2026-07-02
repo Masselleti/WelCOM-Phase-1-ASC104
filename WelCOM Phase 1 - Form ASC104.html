@@ -3292,6 +3292,11 @@
             // mid-drag the browser maps the pointer to the palette's DOM position and the
             // selection jumps across the rest of the question card and every answer choice.
             let maDragSelecting = false;
+            // Track the last pointer-release position so the palette can pop up at the
+            // cursor instead of at the top of a multi-line selection.
+            let maHlPointer = null;
+            document.addEventListener('mouseup', (e) => { maHlPointer = { x: e.clientX, y: e.clientY, t: Date.now() }; }, true);
+            document.addEventListener('touchend', (e) => { const t0 = e.changedTouches && e.changedTouches[0]; if (t0) maHlPointer = { x: t0.clientX, y: t0.clientY, t: Date.now() }; }, true);
             const showPalette = () => {
                 if (maDragSelecting) return;
                 const sel = window.getSelection();
@@ -3316,9 +3321,15 @@
                 // display:none, which used to drop the palette right onto the selected line.
                 hlPalette.style.visibility = 'hidden'; hlPalette.style.display = 'flex';
                 const palH = hlPalette.offsetHeight, palW = hlPalette.offsetWidth;
-                let top = rect.top + window.scrollY - palH - 14;
-                let left = rect.left + window.scrollX + (rect.width / 2) - (palW / 2);
-                if (top < window.scrollY + 10) top = rect.bottom + window.scrollY + 14;
+                // Anchor to the pointer-release position (fresh coords only) so the palette
+                // pops up at the cursor; keyboard/programmatic selections fall back to the
+                // selection-rect anchor.
+                const p = (maHlPointer && Date.now() - maHlPointer.t < 1500) ? maHlPointer : null;
+                const ax = p ? p.x : rect.left + (rect.width / 2);
+                const ay = p ? p.y : rect.top;
+                let top = ay + window.scrollY - palH - 14;
+                let left = ax + window.scrollX - (palW / 2);
+                if (top < window.scrollY + 10) top = (p ? ay : rect.bottom) + window.scrollY + 14;
                 if (left < 10) left = 10;
                 if (left + palW > window.innerWidth) left = window.innerWidth - palW - 10;
                 hlPalette.style.top = top + 'px'; hlPalette.style.left = left + 'px'; hlPalette.style.visibility = 'visible';
