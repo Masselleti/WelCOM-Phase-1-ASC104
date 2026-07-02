@@ -4,34 +4,58 @@
 <head>
     <meta charset="UTF-8">
     <script>
-    /* === Ephemeral session + persistent highlights (added by request) ===
-       HIGHLIGHTS PERSIST PERMANENTLY across sessions: keys prefixed "ma_hl_"
-       (the highlighter's stem/commentary/option highlight HTML) are written to
-       real localStorage and survive closing the tab/window.
-       ALL OTHER viewer state (flags, crossed-out choices / strikeouts, selected
+    /* === Ephemeral session + persistent highlights & question marks (added by request) ===
+       HIGHLIGHTS AND QUESTION MARKS/FLAGS PERSIST PERMANENTLY across sessions:
+       keys prefixed "ma_hl_" (the highlighter's stem/commentary/option highlight
+       HTML) and "MA_FLAG|||" (marked/flagged questions) are written to real
+       localStorage and survive closing the tab/window.
+       ALL OTHER viewer state (crossed-out choices / strikeouts, selected
        answers, notes, timer, theme) stays session-only via sessionStorage and is
-       discarded on close. Non-highlight data saved by earlier sessions is purged
-       on load. To revert to fully-ephemeral, restore the old localStorage->session
-       redirect. Must run before embedded-assets.js and every app script. */
+       discarded on close. Engine-owned non-persistent keys left by earlier
+       sessions are purged on load (ONLY known engine keys - never foreign apps'
+       data, since real localStorage is shared per-origin). Stale MA_FLAG copies
+       left in sessionStorage by pre-update sessions are purged once on load.
+       MA_FLAG keys are included in key()/length enumeration so the dashboard
+       flag count and "Review Flagged" see them across sessions. To revert to
+       fully-ephemeral, restore the old localStorage->session redirect. Must run
+       before embedded-assets.js and every app script. */
     (function () {
       var realLS = null, ss = null;
       try { realLS = window.localStorage; } catch (e) {}
       try { ss = window.sessionStorage; } catch (e) {}
       function isHL(k) { return typeof k === 'string' && k.indexOf('ma_hl_') === 0; }
-      /* Purge prior-session NON-highlight data from persistent storage; keep highlights. */
+      function isFlag(k) { return typeof k === 'string' && k.indexOf('MA_FLAG|||') === 0; }
+      function isPersist(k) { return isHL(k) || isFlag(k); }
+      function isEngineEphemeral(k) {
+        if (typeof k !== 'string') return false;
+        if (k === 'ma_theme' || k === 'ma_font_scale' || k === 'ma_suspended_exam' || k === 'maSplashShown') return true;
+        return k.indexOf('MA_NOTE|||') === 0 || k.indexOf('MA_STRIKE') === 0;
+      }
+      function flagKeys() {
+        var out = [];
+        try { for (var i = 0; i < realLS.length; i++) { var k = realLS.key(i); if (isFlag(k)) out.push(k); } } catch (e) {}
+        return out;
+      }
+      /* Purge engine-owned ephemeral keys left in persistent storage by earlier sessions. */
       try {
         var rm = [];
-        for (var i = 0; i < realLS.length; i++) { var k = realLS.key(i); if (k && !isHL(k)) rm.push(k); }
+        for (var i = 0; i < realLS.length; i++) { var k = realLS.key(i); if (isEngineEphemeral(k)) rm.push(k); }
         for (var j = 0; j < rm.length; j++) realLS.removeItem(rm[j]);
       } catch (e) {}
-      /* Hybrid: ma_hl_* -> persistent localStorage; everything else -> ephemeral sessionStorage. */
+      /* Purge stale MA_FLAG copies from sessionStorage (pre-update sessions wrote flags there). */
+      try {
+        var rms = [];
+        for (var si = 0; si < ss.length; si++) { var sk = ss.key(si); if (isFlag(sk)) rms.push(sk); }
+        for (var sj = 0; sj < rms.length; sj++) ss.removeItem(rms[sj]);
+      } catch (e) {}
+      /* Hybrid: ma_hl_* + MA_FLAG||| -> persistent localStorage; everything else -> ephemeral sessionStorage. */
       var hybrid = {
-        getItem: function (k) { try { return isHL(k) ? realLS.getItem(k) : ss.getItem(k); } catch (e) { return null; } },
-        setItem: function (k, v) { try { if (isHL(k)) realLS.setItem(k, v); else ss.setItem(k, v); } catch (e) {} },
-        removeItem: function (k) { try { if (isHL(k)) realLS.removeItem(k); else ss.removeItem(k); } catch (e) {} },
+        getItem: function (k) { try { return isPersist(k) ? realLS.getItem(k) : ss.getItem(k); } catch (e) { return null; } },
+        setItem: function (k, v) { try { if (isPersist(k)) realLS.setItem(k, v); else ss.setItem(k, v); } catch (e) {} },
+        removeItem: function (k) { try { if (isPersist(k)) realLS.removeItem(k); else ss.removeItem(k); } catch (e) {} },
         clear: function () { try { ss.clear(); } catch (e) {} },
-        key: function (i) { try { return ss.key(i); } catch (e) { return null; } },
-        get length() { try { return ss.length; } catch (e) { return 0; } }
+        key: function (i) { try { var n = ss.length; if (i < n) return ss.key(i); var fk = flagKeys(); return (fk[i - n] !== undefined) ? fk[i - n] : null; } catch (e) { return null; } },
+        get length() { try { return ss.length + flagKeys().length; } catch (e) { return 0; } }
       };
       try {
         Object.defineProperty(window, 'localStorage', {
@@ -2562,7 +2586,7 @@
             }
 
             let flagCount = 0;
-            for (let i = 0; i < localStorage.length; i++) { if (localStorage.key(i).startsWith('MA_FLAG|||')) flagCount++; }
+            for (let i = 0; i < localStorage.length; i++) { if (localStorage.key(i).startsWith('MA_FLAG|||' + FORM_DB_PATH + '|||')) flagCount++; }
             if (flagCount > 0) {
                 hasActivity = true;
                 container.innerHTML += `<div class="menu-card flag-card" onclick="startFlaggedReview()">
@@ -2580,7 +2604,7 @@
             currentQuestions = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key.startsWith('MA_FLAG|||')) {
+                if (key.startsWith('MA_FLAG|||' + FORM_DB_PATH + '|||')) {
                     const parts = key.split('|||');
                     if (parts.length === 3) currentQuestions.push({ id: parseInt(parts[2]), dbPath: parts[1] });
                 }
@@ -2588,7 +2612,7 @@
             if (currentQuestions.length === 0) return alert("No flagged questions found.");
             currentQuestionIndex = 0; userAnswers = {}; learningAnswered = false; currentMode = 'learning';
             showSection('learning-mode');
-            document.getElementById('learning-categories-tree').style.display = 'none';
+            var __lmTree = document.getElementById('learning-categories-tree'); if (__lmTree) __lmTree.style.display = 'none';
             document.getElementById('learning-setup').style.display = 'none';
             document.getElementById('learning-questions').style.display = 'block';
             await displayQuestion();
