@@ -294,6 +294,12 @@
         .commentary h4 { color: var(--primary); margin-bottom: 20px; font-size: 15px; text-transform: uppercase; font-weight: 800; display: flex; align-items: center; gap: 8px; }
         .commentary-content { user-select: text; text-align: left; font-weight: 500; }
         .commentary-content * { background: transparent !important; }
+        /* ...but keep highlighter marks visible in the explanation and answer options
+           (the transparent rules strip imported-content backgrounds; without these
+           overrides applied highlights exist in the DOM but render invisible). */
+        .commentary-content .hl-yellow, .commentary-content .hl-yellow *, .option-text .hl-yellow, .option-text .hl-yellow * { background: #fff6a7 !important; }
+        .commentary-content .hl-green, .commentary-content .hl-green *, .option-text .hl-green, .option-text .hl-green * { background: #c8f7c5 !important; }
+        .commentary-content .hl-blue, .commentary-content .hl-blue *, .option-text .hl-blue, .option-text .hl-blue * { background: #cfe9ff !important; }
 
         /* Navigation (Sticky Bottom Bar) */
         .navigation { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; z-index: 900; box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05); margin-top: 0; transition: transform 0.4s ease, opacity 0.4s ease; padding-bottom: calc(12px + env(safe-area-inset-bottom)); gap: 8px; flex-wrap: nowrap;}
