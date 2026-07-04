@@ -98,7 +98,7 @@
             --radius: 16px;
             /* 100% Local System Fonts - NO Google Fonts Needed */
             --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            --text-scale: 1;
+            --text-scale: 1.15;
         }
 
         html.dark {
@@ -1593,7 +1593,7 @@
                 document.querySelector('meta[name="theme-color"]').setAttribute("content", "#0f172a");
             }
 
-            let fontScale = parseFloat(localStorage.getItem('ma_font_scale')) || 1;
+            let fontScale = parseFloat(localStorage.getItem('ma_font_scale')) || 1.15;
             document.documentElement.style.setProperty('--text-scale', fontScale);
 
             loadDashboardActivity();
@@ -1640,8 +1640,8 @@
             }
         });
 
-        document.getElementById('btn-font-inc').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1; if (f < 1.5) { f += 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
-        document.getElementById('btn-font-dec').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1; if (f > 0.8) { f -= 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
+        document.getElementById('btn-font-inc').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1.15; if (f < 1.5) { f += 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
+        document.getElementById('btn-font-dec').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1.15; if (f > 0.8) { f -= 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
 
         const btnZen = document.getElementById('btn-zen');
         if (btnZen) { btnZen.addEventListener('click', () => { document.body.classList.add('zen-mode'); }); }
