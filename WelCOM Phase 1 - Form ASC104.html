@@ -2978,7 +2978,7 @@
                     const o = document.querySelector(`.answer-option[data-option-id="${a.answerID}"]`);
                     if(o) {
                         if (a.isCorrect) o.classList.add('correct');
-                        if (ansId === a.answerID && !a.isCorrect) o.classList.add('incorrect');
+                        if (String(ansId) === String(a.answerID) && !a.isCorrect) o.classList.add('incorrect');
                     }
                 });
                 if (typeof maLoadHighlights === 'function') setTimeout(maLoadHighlights, 50);
@@ -3184,11 +3184,11 @@
                 const l = String.fromCharCode(65 + i); let c = 'answer-option';
                 if (disabled) c += ' disabled';
                 if (isExam) {
-                    if (hasAnswered && userAnswers[qId].answerId === a.answerID) c += ' selected';
+                    if (hasAnswered && String(userAnswers[qId].answerId) === String(a.answerID)) c += ' selected';
                 } else {
                     if (hasAnswered) {
                         if (a.isCorrect) c += ' correct';
-                        if (userAnswers[qId].answerId === a.answerID && !a.isCorrect) c += ' incorrect';
+                        if (String(userAnswers[qId].answerId) === String(a.answerID) && !a.isCorrect) c += ' incorrect';
                     }
                 }
                 return `<div class="${c}" data-option-id="${a.answerID}" onclick="selectOption('${a.answerID}', ${a.isCorrect})"><div class="option-letter">${l}</div><div class="option-content"><div class="option-text">${processContent(a.answerText || '')}</div></div></div>`;
@@ -3200,7 +3200,7 @@
             return ans.map((a, i) => {
                 const l = String.fromCharCode(65 + i); let c = 'answer-option disabled';
                 if (a.isCorrect) c += ' correct';
-                if (userAns && userAns.answerId === a.answerID && !a.isCorrect) c += ' incorrect';
+                if (userAns && String(userAns.answerId) === String(a.answerID) && !a.isCorrect) c += ' incorrect';
                 return `<div class="${c}" data-option-id="${a.answerID}"><div class="option-letter">${l}</div><div class="option-content"><div class="option-text">${processContent(a.answerText || '')}</div></div></div>`;
             }).join('');
         }
