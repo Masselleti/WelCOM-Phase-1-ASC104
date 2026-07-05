@@ -3005,12 +3005,6 @@
                 });
                 if (typeof maLoadHighlights === 'function') setTimeout(maLoadHighlights, 50);
                 if (typeof uwRenderSidebar === 'function') uwRenderSidebar();
-                setTimeout(()=> {
-                    if(comm) {
-                        const y = comm.getBoundingClientRect().top + window.scrollY - 80;
-                        window.scrollTo({top: y, behavior: 'smooth'});
-                    }
-                }, 300);
             }
         }
 
@@ -3029,9 +3023,6 @@
                 }
             });
             if (typeof maLoadHighlights === 'function') setTimeout(maLoadHighlights, 50);
-            setTimeout(function () {
-                if (comm) { const y = comm.getBoundingClientRect().top + window.scrollY - 80; window.scrollTo({ top: y, behavior: 'smooth' }); }
-            }, 300);
         }
 
         async function navQ(dir) {
