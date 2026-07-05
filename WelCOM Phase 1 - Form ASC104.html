@@ -2,6 +2,27 @@
 <html lang="en" class="light">
 
 <head>
+    <script>
+    /* Follow the system appearance (light/dark): open matching it and live-update on
+       change, unless the user overrides with the theme toggle during this session. */
+    (function () {
+        try {
+            var mq = window.matchMedia('(prefers-color-scheme: dark)');
+            window.__maSystemMQ = mq; // strong ref: keep the listener alive
+            if (mq.matches) document.documentElement.classList.add('dark');
+            var applySystemTheme = function (e) {
+                if (window.__maThemeManual) return;
+                document.documentElement.classList.toggle('dark', e.matches);
+                var btn = document.getElementById('dark-toggle');
+                if (btn) btn.textContent = e.matches ? '☀️' : '🌙';
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', e.matches ? '#0f172a' : '#21AED9');
+            };
+            if (mq.addEventListener) mq.addEventListener('change', applySystemTheme);
+            else if (mq.addListener) mq.addListener(applySystemTheme);
+        } catch (err) { /* matchMedia unavailable: keep the light default */ }
+    })();
+    </script>
     <meta charset="UTF-8">
     <script>
     /* === Ephemeral session + persistent highlights & question marks (added by request) ===
@@ -1586,7 +1607,7 @@
                 }, remainingTime);
             }
 
-            const isDark = localStorage.getItem('ma_theme') === 'dark';
+            const isDark = document.documentElement.classList.contains('dark');
             if (isDark) {
                 document.documentElement.classList.add('dark');
                 document.getElementById('dark-toggle').textContent = '☀️';
@@ -1625,6 +1646,7 @@
 
         // --- UI Interactions ---
         document.getElementById('dark-toggle').addEventListener('click', () => {
+            window.__maThemeManual = true; // manual override beats system appearance this session
             const isNowDark = !document.documentElement.classList.contains('dark');
             if (isNowDark) {
                 document.documentElement.classList.add('dark');
