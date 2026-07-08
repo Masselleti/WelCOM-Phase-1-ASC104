@@ -3939,5 +3939,19 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
     }, { passive: true });
 })();
 </script>
+
+<!-- ma-dark-overscroll-fix (2026-07-08): when the active question view is in
+     dark/reverse mode, the page canvas (html/body) stayed white (the exam shell
+     forces body background #fff), so on touch layouts where the page itself
+     scrolls, rubber-band overscroll flashed a white band beyond the exam
+     surface. Paint the canvas to match the reverse surface (#1a1a1a). Keyed to
+     the ACTIVE view's nbme-reverse class (engines strip skin classes from the
+     inactive container each render), so a light exam keeps its white canvas. -->
+<style id="ma-dark-overscroll-fix">
+html:has(body.in-nbme-question .nbme-skin.uw-skin.nbme-reverse),
+body.in-nbme-question:has(.nbme-skin.uw-skin.nbme-reverse) {
+    background: #1a1a1a !important;
+}
+</style>
 </body>
 </html>
