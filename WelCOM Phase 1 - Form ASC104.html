@@ -2828,7 +2828,7 @@
                     const idx = currentQuestionIndex + 1;
                     html = `
                     <div class="uw-header">
-                        <div class="uw-header-left">
+                        <div class="uw-header-left"><div class="uw-header-left-name">WelCOM ASC104</div>
                             <div class="uw-header-left-title">Question</div>
                             <div class="uw-header-left-title">Status</div>
                         </div>
@@ -2899,7 +2899,7 @@
                     const idx = currentQuestionIndex + 1;
                     html = `
                     <div class="uw-header">
-                        <div class="uw-header-left">
+                        <div class="uw-header-left"><div class="uw-header-left-name">WelCOM ASC104</div>
                             <div class="uw-header-left-title">Question</div>
                             <div class="uw-header-left-title">Status</div>
                         </div>
@@ -3951,6 +3951,16 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
 html:has(body.in-nbme-question .nbme-skin.uw-skin.nbme-reverse),
 body.in-nbme-question:has(.nbme-skin.uw-skin.nbme-reverse) {
     background: #1a1a1a !important;
+}
+</style>
+
+<!-- ma-engine-name (2026-07-08): show which engine/form this viewer is in the
+     top-left "Question Status" header box. -->
+<style id="ma-engine-name-style">
+.uw-header-left-name {
+    font-size: 11px; font-weight: 800; line-height: 1.25; letter-spacing: 0.4px;
+    margin-bottom: 3px; padding-bottom: 3px;
+    border-bottom: 1px solid rgba(255,255,255,0.28);
 }
 </style>
 </body>
