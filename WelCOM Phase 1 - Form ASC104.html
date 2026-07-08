@@ -3522,14 +3522,15 @@ html.ma-phone body.in-nbme-question #ma-nav-fab {
     left: 12px; bottom: calc(14px + env(safe-area-inset-bottom));
     width: 50px; height: 50px; border-radius: 50%;
     align-items: center; justify-content: center;
-    background: #1f3863; color: #fff;
-    border: 2px solid rgba(255,255,255,.85);
+    background: #fff; color: #111;
+    border: 1.5px solid #9aa3b0;
     font-size: 20px; line-height: 1; cursor: pointer;
     box-shadow: 0 4px 14px rgba(0,0,0,.4);
     z-index: 1500; -webkit-tap-highlight-color: transparent;
 }
 #ma-nav-fab:active { transform: scale(.94); }
-html.ma-phone body:has(.nbme-skin.nbme-reverse) #ma-nav-fab { background: #2a2a2a; border-color: #888; }
+/* Reverse (dark) mode: keep the white disc + black lines; lighten border for contrast */
+html.ma-phone body:has(.nbme-skin.nbme-reverse) #ma-nav-fab { background: #fff; color: #111; border-color: #cfd3da; }
 
 html.ma-phone body.in-nbme-question.ma-nav-open #ma-nav-scrim {
     display: block; position: fixed; inset: 0;
@@ -3595,6 +3596,10 @@ html.ma-phone .nbme-skin.uw-skin .uw-tool[title*="full" i] { display: none !impo
 html.ma-phone .nbme-skin.uw-skin .uw-bottom-bar { padding: 6px 12px 6px 72px !important; }
 html.ma-phone .nbme-skin.uw-skin .uw-bottom-tool { font-size: 11px !important; padding: 6px 10px !important; min-height: 40px; }
 html.ma-phone .nbme-skin.uw-skin .uw-bottom-tool .uw-bottom-tool-icon { font-size: 16px !important; }
+/* Tapping the elapsed-time area reveals the answer (like spacebar); the buttons
+   opt out of the cue via their own cursor. */
+html.ma-phone .nbme-skin.uw-skin .uw-elapsed { cursor: pointer; }
+html.ma-phone .nbme-skin.uw-skin .uw-bottom-bar:active .uw-elapsed { opacity: .6; }
 
 /* Wide stem/explanation tables scroll inside their own box instead of
    overflowing the page; exam images shrink to the column */
@@ -3625,11 +3630,19 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
 (function () {
     var doc = document.documentElement;
     var mq = window.matchMedia('(hover: none) and (pointer: coarse)');
-    function isPhone() {
-        var force = null;
-        try { force = localStorage.getItem('ma_force_phone'); } catch (e) {}
-        if (force === '1') return true;
-        if (force === '0') return false;
+    function forced() {
+        try { return localStorage.getItem('ma_force_phone'); } catch (e) { return null; }
+    }
+    function touchNav() {          /* touch-primary device (or forced) — not width-gated */
+        var f = forced();
+        if (f === '1') return true;
+        if (f === '0') return false;
+        return mq.matches;
+    }
+    function isPhone() {           /* phone-width layout gate */
+        var f = forced();
+        if (f === '1') return true;
+        if (f === '0') return false;
         return mq.matches && window.innerWidth <= 520;
     }
     function closeNav() { document.body.classList.remove('ma-nav-open'); }
@@ -3662,14 +3675,36 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
     else if (mq.addListener) mq.addListener(update);
     update();
 
+    /* --- tap the elapsed-time area of the bottom bar to reveal the answer,
+       like spacebar on desktop. Calls the engine's own reveal function directly
+       (rather than firing a real spacebar, which on this engine ALSO advances to
+       the next question). Reveal fns self-guard to learning-mode + unanswered and
+       never navigate. The End Block / Finish buttons are excluded. --- */
+    function maReveal() {
+        var names = ['revealNbmeAnswer', 'revealLearningAnswer', 'revealAnswer'];
+        for (var i = 0; i < names.length; i++) {
+            if (typeof window[names[i]] === 'function') { try { window[names[i]](); } catch (e) {} return true; }
+        }
+        return false;
+    }
+    window.maRevealAnswer = maReveal;
+    document.addEventListener('click', function (e) {
+        if (!touchNav()) return;
+        if (!document.body.classList.contains('in-nbme-question')) return;
+        if (typeof currentMode !== 'undefined' && currentMode !== 'learning') return;
+        var t = e.target;
+        if (!t || !t.closest) return;
+        if (!t.closest('.uw-bottom-bar')) return;
+        if (t.closest('.uw-bottom-tool, button, a, input, select, textarea, label, [role="button"], [onclick]')) return;
+        maReveal();
+    }, false);
+
     /* --- swipe left/right on the question to go next/previous --- */
     function swipeOn() {
         if (!document.body.classList.contains('in-nbme-question')) return false;
         if (document.body.classList.contains('ma-nav-open')) return false;
         if (window.visualViewport && window.visualViewport.scale > 1.05) return false;
-        var force = null;
-        try { force = localStorage.getItem('ma_force_phone'); } catch (e) {}
-        return mq.matches || force === '1';
+        return touchNav();
     }
     function navBySwipe(dir) {
         var btn = document.querySelector('.uw-header-nav .uw-nav-btn[title*="' + (dir === 'next' ? 'Next' : 'Previous') + '" i]');
