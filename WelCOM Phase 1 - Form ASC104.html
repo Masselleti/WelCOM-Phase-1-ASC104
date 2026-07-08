@@ -3549,7 +3549,7 @@ html.ma-phone .nbme-skin.uw-skin {
     align-content: stretch !important;
 }
 html.ma-phone .nbme-skin.uw-skin .uw-body { overflow: visible !important; grid-template-columns: minmax(0, 1fr) !important; }
-html.ma-phone .nbme-skin.uw-skin .uw-main { overflow-y: visible !important; height: auto !important; max-height: none !important; min-width: 0 !important; max-width: 100vw !important; }
+html.ma-phone .nbme-skin.uw-skin .uw-main { overflow: visible !important; height: auto !important; max-height: none !important; min-width: 0 !important; max-width: 100vw !important; }
 
 /* Question column takes the full width; navigator becomes an off-canvas drawer */
 html.ma-phone .nbme-skin.uw-skin { padding-left: 0 !important; }
@@ -3608,6 +3608,18 @@ html.ma-phone .nbme-skin.uw-skin .commentary-content img,
 html.ma-phone .nbme-skin.uw-skin .answer-option img {
     max-width: 100% !important; height: auto !important;
 }
+
+/* Swipe next/prev: brief slide-in on the incoming question (class lives on the
+   persistent container, so it catches the re-rendered .uw-main). Touch devices
+   at any width — not gated on ma-phone. */
+@keyframes ma-swipe-in-next { from { opacity: .3; transform: translateX(26px); } to { opacity: 1; transform: none; } }
+@keyframes ma-swipe-in-prev { from { opacity: .3; transform: translateX(-26px); } to { opacity: 1; transform: none; } }
+.nbme-skin.uw-skin.ma-swipe-next .uw-main { animation: ma-swipe-in-next .18s ease-out; }
+.nbme-skin.uw-skin.ma-swipe-prev .uw-main { animation: ma-swipe-in-prev .18s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+    .nbme-skin.uw-skin.ma-swipe-next .uw-main,
+    .nbme-skin.uw-skin.ma-swipe-prev .uw-main { animation: none; }
+}
 </style>
 <script id="ma-phone-fix-js">
 (function () {
@@ -3649,6 +3661,69 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
     if (mq.addEventListener) mq.addEventListener('change', update);
     else if (mq.addListener) mq.addListener(update);
     update();
+
+    /* --- swipe left/right on the question to go next/previous --- */
+    function swipeOn() {
+        if (!document.body.classList.contains('in-nbme-question')) return false;
+        if (document.body.classList.contains('ma-nav-open')) return false;
+        if (window.visualViewport && window.visualViewport.scale > 1.05) return false;
+        var force = null;
+        try { force = localStorage.getItem('ma_force_phone'); } catch (e) {}
+        return mq.matches || force === '1';
+    }
+    function navBySwipe(dir) {
+        var btn = document.querySelector('.uw-header-nav .uw-nav-btn[title*="' + (dir === 'next' ? 'Next' : 'Previous') + '" i]');
+        if (!btn || btn.disabled) return false;
+        var cont = btn.closest('.nbme-skin.uw-skin');
+        if (cont) {
+            cont.classList.remove('ma-swipe-next', 'ma-swipe-prev');
+            void cont.offsetWidth;
+            cont.classList.add(dir === 'next' ? 'ma-swipe-next' : 'ma-swipe-prev');
+            setTimeout(function () { cont.classList.remove('ma-swipe-next', 'ma-swipe-prev'); }, 600);
+        }
+        btn.click();
+        return true;
+    }
+    window.maSwipeNav = navBySwipe;
+    function hScrollable(el) {
+        /* Veto only for scrollable boxes INSIDE the question column (wide
+           tables); never for .uw-main itself (the desktop inner scroller). */
+        for (var n = el; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) {
+            if (n.classList && (n.classList.contains('uw-main') || n.classList.contains('uw-skin'))) return false;
+            if (n.scrollWidth > n.clientWidth + 1) {
+                var o = getComputedStyle(n).overflowX;
+                if (o === 'auto' || o === 'scroll') return true;
+            }
+        }
+        return false;
+    }
+    var sw = null;
+    document.addEventListener('touchstart', function (e) {
+        sw = null;
+        if (!swipeOn() || e.touches.length !== 1) return;
+        var t = e.touches[0];
+        if (t.clientX < 30 || t.clientX > window.innerWidth - 30) return; /* iOS edge back/forward zone */
+        var el = e.target;
+        if (el.closest && el.closest('.uw-sidebar, .lv-overlay, .modal, .custom-modal, .ma-modal-card, #highlight-palette, #ma-nav-fab, input, textarea, select, [contenteditable="true"]')) return;
+        if (el.nodeType === 1 && hScrollable(el)) return;
+        sw = { x: t.clientX, y: t.clientY, at: Date.now(), id: t.identifier };
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+        if (sw && e.touches.length !== 1) sw = null; /* pinch → not a swipe */
+    }, { passive: true });
+    document.addEventListener('touchcancel', function () { sw = null; }, { passive: true });
+    document.addEventListener('touchend', function (e) {
+        var s = sw; sw = null;
+        if (!s || !swipeOn()) return;
+        var t = e.changedTouches && e.changedTouches[0];
+        if (!t || t.identifier !== s.id) return;
+        var dx = t.clientX - s.x, dy = t.clientY - s.y;
+        if (Date.now() - s.at > 800) return;
+        if (Math.abs(dx) < 70 || Math.abs(dx) < 1.8 * Math.abs(dy)) return;
+        var sel = window.getSelection && window.getSelection();
+        if (sel && sel.rangeCount && !sel.isCollapsed) return; /* selecting/highlighting text */
+        navBySwipe(dx < 0 ? 'next' : 'previous');
+    }, { passive: true });
 })();
 </script>
 </body>
