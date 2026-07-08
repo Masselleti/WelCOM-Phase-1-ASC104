@@ -3614,7 +3614,7 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
     max-width: 100% !important; height: auto !important;
 }
 
-/* Tap-nav next/prev: brief slide-in on the incoming question (class lives on the
+/* Swipe next/prev: brief slide-in on the incoming question (class lives on the
    persistent container, so it catches the re-rendered .uw-main). Touch devices
    at any width — not gated on ma-phone. */
 @keyframes ma-swipe-in-next { from { opacity: .3; transform: translateX(26px); } to { opacity: 1; transform: none; } }
@@ -3675,19 +3675,22 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
     else if (mq.addListener) mq.addListener(update);
     update();
 
-    /* --- tap the elapsed-time area of the bottom bar to reveal the answer,
-       like spacebar on desktop. Calls the engine's own reveal function directly
-       (rather than firing a real spacebar, which on this engine ALSO advances to
-       the next question). Reveal fns self-guard to learning-mode + unanswered and
-       never navigate. The End Block / Finish buttons are excluded. --- */
-    function maReveal() {
-        var names = ['revealNbmeAnswer', 'revealLearningAnswer', 'revealAnswer'];
-        for (var i = 0; i < names.length; i++) {
-            if (typeof window[names[i]] === 'function') { try { window[names[i]](); } catch (e) {} return true; }
+    /* --- tap the elapsed-time area of the bottom bar to do exactly what the
+       desktop spacebar does. Fires a real spacebar keydown on document so each
+       engine's own handler(s) run: on the NBME engine that reveals AND advances
+       to the next item; on COMSAE/WelCOM it reveals if unanswered, else advances.
+       The End Block / Finish buttons are excluded; learning-mode only. --- */
+    function dispatchSpace() {
+        var ev;
+        try {
+            ev = new KeyboardEvent('keydown', { key: ' ', code: 'Space', keyCode: 32, which: 32, bubbles: true, cancelable: true });
+        } catch (e) {
+            ev = document.createEvent('Event'); ev.initEvent('keydown', true, true);
+            ev.key = ' '; ev.code = 'Space'; ev.keyCode = 32; ev.which = 32;
         }
-        return false;
+        document.dispatchEvent(ev);
     }
-    window.maRevealAnswer = maReveal;
+    window.maRevealAnswer = dispatchSpace;
     document.addEventListener('click', function (e) {
         if (!touchNav()) return;
         if (!document.body.classList.contains('in-nbme-question')) return;
@@ -3696,26 +3699,17 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
         if (!t || !t.closest) return;
         if (!t.closest('.uw-bottom-bar')) return;
         if (t.closest('.uw-bottom-tool, button, a, input, select, textarea, label, [role="button"], [onclick]')) return;
-        maReveal();
+        dispatchSpace();
     }, false);
 
-    /* --- tap the left/right side of the screen to go previous/next (replaces
-       the old swipe gesture, 2026-07-08). A quick, motionless, single-finger
-       tap inside a side zone navigates; taps on anything interactive under the
-       finger (options, buttons, links, images, header tools, bottom bar,
-       modals, drawer) are left alone so answering, tools and the Block-Time
-       reveal tap are never hijacked. Taps that stop a momentum scroll are
-       ignored (scroll seen within 350ms). On layouts with the fixed navigator
-       rail (iPad / landscape phone, no ma-phone class) the left zone starts at
-       the rail's right edge. --- */
-    function tapNavOn() {
+    /* --- swipe left/right on the question to go next/previous --- */
+    function swipeOn() {
         if (!document.body.classList.contains('in-nbme-question')) return false;
         if (document.body.classList.contains('ma-nav-open')) return false;
         if (window.visualViewport && window.visualViewport.scale > 1.05) return false;
         return touchNav();
     }
-    var scrollQuietUntil = 0;
-    function navByTap(dir) {
+    function navBySwipe(dir) {
         var btn = document.querySelector('.uw-header-nav .uw-nav-btn[title*="' + (dir === 'next' ? 'Next' : 'Previous') + '" i]');
         if (!btn || btn.disabled) return false;
         var cont = btn.closest('.nbme-skin.uw-skin');
@@ -3725,36 +3719,13 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
             cont.classList.add(dir === 'next' ? 'ma-swipe-next' : 'ma-swipe-prev');
             setTimeout(function () { cont.classList.remove('ma-swipe-next', 'ma-swipe-prev'); }, 600);
         }
-        scrollQuietUntil = Date.now() + 700; /* the render's own (smooth) scroll-to-top is not a user scroll */
         btn.click();
         return true;
     }
-    window.maTapNav = navByTap;
-    window.maSwipeNav = navByTap; /* legacy hook name, kept for console/back-compat */
-    var lastScrollAt = 0;
-    document.addEventListener('scroll', function () {
-        if (Date.now() < scrollQuietUntil) return;
-        lastScrollAt = Date.now();
-    }, { capture: true, passive: true });
-    function tapZoneDir(x) {
-        var w = window.innerWidth, left = 0;
-        if (!document.documentElement.classList.contains('ma-phone')) {
-            var sb = document.querySelector('.uw-sidebar');
-            if (sb) {
-                var r = sb.getBoundingClientRect();
-                /* visible fixed left rail (not the off-canvas phone drawer) */
-                if (r.width > 0 && r.left <= 1 && r.right > 0 && r.right < w * 0.4) left = r.right;
-            }
-        }
-        var z = Math.min(Math.max(w * 0.2, 56), 110);
-        if (x >= left && x <= left + z) return 'previous';
-        if (x >= w - z) return 'next';
-        return null;
-    }
+    window.maSwipeNav = navBySwipe;
     function hScrollable(el) {
-        /* A nudge on a wide table that fails to scroll can read as a tap;
-           never navigate from inside a scrollable box in the question column.
-           .uw-main itself (the desktop inner scroller) is never a veto. */
+        /* Veto only for scrollable boxes INSIDE the question column (wide
+           tables); never for .uw-main itself (the desktop inner scroller). */
         for (var n = el; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) {
             if (n.classList && (n.classList.contains('uw-main') || n.classList.contains('uw-skin'))) return false;
             if (n.scrollWidth > n.clientWidth + 1) {
@@ -3764,58 +3735,33 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
         }
         return false;
     }
-    var swallow = null;
-    document.addEventListener('click', function (e) {
-        /* eat the compatibility click that can trail a nav tap (only when its
-           touchend was not cancelable) so it cannot land on the freshly
-           rendered question. Trusted events at the tap point only: programmatic
-           el.click() (e.g. keyboard answer selection) must never be eaten. */
-        if (!swallow || !e.isTrusted) return;
-        if (Date.now() > swallow.until) { swallow = null; return; }
-        if (Math.abs(e.clientX - swallow.x) > 24 || Math.abs(e.clientY - swallow.y) > 24) return;
-        swallow = null;
-        e.stopPropagation();
-        e.preventDefault();
-    }, true);
-    var tp = null;
+    var sw = null;
     document.addEventListener('touchstart', function (e) {
-        swallow = null; /* a new touch means any trailing click already fired */
-        tp = null;
-        if (!tapNavOn() || e.touches.length !== 1) return;
-        if (Date.now() - lastScrollAt < 350) return; /* tap that stops a momentum scroll */
+        sw = null;
+        if (!swipeOn() || e.touches.length !== 1) return;
         var t = e.touches[0];
-        if (!tapZoneDir(t.clientX)) return;
+        if (t.clientX < 30 || t.clientX > window.innerWidth - 30) return; /* iOS edge back/forward zone */
         var el = e.target;
-        if (!el || !el.closest) return;
-        if (el.closest('.uw-sidebar, .uw-header, .uw-bottom-bar, .lv-overlay, .modal, .custom-modal, .ma-modal-card, .ma-modal-overlay, .time-up-modal, #highlight-palette, #ma-hl-palette, #ma-nav-fab, #ma-nav-scrim, .answer-options, .answer-option, button, a, img, input, textarea, select, label, [role="button"], [onclick], [contenteditable="true"]')) return;
+        if (el.closest && el.closest('.uw-sidebar, .lv-overlay, .modal, .custom-modal, .ma-modal-card, #highlight-palette, #ma-nav-fab, input, textarea, select, [contenteditable="true"]')) return;
         if (el.nodeType === 1 && hScrollable(el)) return;
-        tp = { x: t.clientX, y: t.clientY, at: Date.now(), id: t.identifier };
+        sw = { x: t.clientX, y: t.clientY, at: Date.now(), id: t.identifier };
     }, { passive: true });
     document.addEventListener('touchmove', function (e) {
-        if (!tp) return;
-        if (e.touches.length !== 1) { tp = null; return; } /* pinch -> not a tap */
-        var t = e.touches[0];
-        if (Math.abs(t.clientX - tp.x) > 12 || Math.abs(t.clientY - tp.y) > 12) tp = null; /* scroll/drag */
+        if (sw && e.touches.length !== 1) sw = null; /* pinch → not a swipe */
     }, { passive: true });
-    document.addEventListener('touchcancel', function () { tp = null; }, { passive: true });
+    document.addEventListener('touchcancel', function () { sw = null; }, { passive: true });
     document.addEventListener('touchend', function (e) {
-        var s = tp; tp = null;
-        if (!s || !tapNavOn()) return;
+        var s = sw; sw = null;
+        if (!s || !swipeOn()) return;
         var t = e.changedTouches && e.changedTouches[0];
         if (!t || t.identifier !== s.id) return;
-        if (Date.now() - s.at > 350) return; /* long-press -> text selection, not nav */
-        if (Math.abs(t.clientX - s.x) > 12 || Math.abs(t.clientY - s.y) > 12) return;
-        if (lastScrollAt > s.at - 350) return; /* scroller was moving around this tap */
-        var dir = tapZoneDir(s.x);
-        if (!dir) return;
+        var dx = t.clientX - s.x, dy = t.clientY - s.y;
+        if (Date.now() - s.at > 800) return;
+        if (Math.abs(dx) < 70 || Math.abs(dx) < 1.8 * Math.abs(dy)) return;
         var sel = window.getSelection && window.getSelection();
         if (sel && sel.rangeCount && !sel.isCollapsed) return; /* selecting/highlighting text */
-        /* a qualified zone tap is never a zoom/click: suppress the compat click
-           and iOS double-tap zoom even when nav is unavailable (first/last Q) */
-        if (e.cancelable) e.preventDefault();
-        else swallow = { x: t.clientX, y: t.clientY, until: Date.now() + 700 };
-        navByTap(dir);
-    }, { passive: false });
+        navBySwipe(dx < 0 ? 'next' : 'previous');
+    }, { passive: true });
 })();
 </script>
 </body>
