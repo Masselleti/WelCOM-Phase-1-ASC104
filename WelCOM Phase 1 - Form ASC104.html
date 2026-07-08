@@ -3821,5 +3821,125 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
     }, { passive: false });
 })();
 </script>
+
+<!-- ma-desktop-reveal (2026-07-08): on mouse/desktop layouts, clicking the blank
+     area to the RIGHT of the "Mark Question" / "Copy" row reveals the answer in
+     Learning mode (same reveal the spacebar does), and once the answer is showing
+     a second click there advances to the next question. Touch devices keep their
+     existing tap gestures (Block-Time bar reveal + edge taps) and are excluded. -->
+<script id="ma-desktop-reveal-js">
+(function () {
+    if (window.maDesktopReveal) return;   /* double-insertion sentinel: two copies = reveal+instant-advance */
+    window.maDesktopReveal = true;
+    var coarse = window.matchMedia('(hover: none) and (pointer: coarse)');
+    var lastDown = null;   /* most recent mousedown, so drag releases from elsewhere can't trigger */
+    var lastFire = 0;      /* accidental double-click guard */
+
+    function isLearning() {
+        try { return typeof currentMode !== 'undefined' && currentMode === 'learning'; }
+        catch (e) { return false; }
+    }
+    function isAnswered() {
+        try { return typeof learningAnswered !== 'undefined' && !!learningAnswered; }
+        catch (e) { return false; }
+    }
+    function dragging() {
+        try { return typeof maDragSelecting !== 'undefined' && !!maDragSelecting; }
+        catch (e) { return false; }
+    }
+    function reveal() {
+        if (typeof window.revealNbmeAnswer === 'function') return window.revealNbmeAnswer();
+        if (typeof window.revealAnswer === 'function') return window.revealAnswer();
+        if (typeof window.revealLearningAnswer === 'function') return window.revealLearningAnswer();
+        if (typeof window.maRevealAnswer === 'function') return window.maRevealAnswer();
+        return false;
+    }
+    function goNext() {
+        var btns = document.querySelectorAll('.uw-header-nav .uw-nav-btn');
+        for (var i = 0; i < btns.length; i++) {
+            var b = btns[i];
+            var sig = (b.getAttribute('title') || '') + '|' + (b.getAttribute('onclick') || '') + '|' + b.textContent;
+            if (/next/i.test(sig)) { if (!b.disabled) b.click(); return; }
+        }
+        if (typeof window.navQ === 'function') window.navQ(1);
+        else if (typeof window.nextLearningQuestion === 'function') window.nextLearningQuestion();
+    }
+    function inZone(x, y) {
+        var row = document.getElementById('uw-mark-row');
+        if (!row || !row.closest) return false;
+        var main = row.closest('.uw-main');
+        if (!main) return false;
+        var r1 = row.getBoundingClientRect();
+        if (!r1.width && !r1.height) return false;   /* not laid out */
+        var copy = main.querySelector('.uw-copy-btn');
+        var r2 = copy ? copy.getBoundingClientRect() : r1;
+        var top = Math.min(r1.top, r2.top) - 4;
+        var bottom = Math.max(r1.bottom, r2.bottom) + 4;
+        var left = Math.max(r1.right, r2.right) + 8;
+        var right = main.getBoundingClientRect().right - 4;
+        return y >= top && y <= bottom && x >= left && x <= right;
+    }
+    function armed() {
+        if (coarse.matches) return false;            /* touch layouts keep their tap gestures */
+        if (!document.body.classList.contains('in-nbme-question')) return false;
+        if (!isLearning()) return false;
+        if (document.querySelector('.modal.show, .custom-modal.show, .ma-modal-overlay.show, .time-up-modal.show, #lv-overlay.is-open, #media-modal.show')) return false;
+        return true;
+    }
+    /* true when the click belongs to a real control inside the question column */
+    function interactive(t) {
+        if (!t || !t.closest) return true;
+        var main = t.closest('.uw-main');
+        if (!main) return true;
+        var hit = t.closest('button, a, input, select, textarea, label, [role="button"], [onclick], .answer-option, .answer-options, img, table, .commentary, #highlight-palette');
+        return !!(hit && hit !== main && main.contains(hit));
+    }
+    document.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) { lastDown = null; return; }
+        /* zone verdict and selection state are captured NOW: the browser collapses a
+           text selection as the mousedown default action (so the click-time selection
+           guard can't see a click-away-to-deselect), and scrolling during the press
+           moves the strip in viewport space (so a click-time re-check can false-fire) */
+        var sel = window.getSelection();
+        lastDown = {
+            t: Date.now(),
+            zone: inZone(e.clientX, e.clientY),
+            hadSelection: !!(sel && String(sel).trim() !== '')
+        };
+    }, true);
+    document.addEventListener('click', function (e) {
+        if (!armed() || dragging()) return;
+        if (interactive(e.target)) return;
+        var sel = window.getSelection();
+        if (sel && String(sel).trim() !== '') return;              /* release of a text-selection drag */
+        if (!inZone(e.clientX, e.clientY)) return;
+        if (!lastDown || Date.now() - lastDown.t > 1500 || !lastDown.zone) return;
+        if (lastDown.hadSelection) return;                         /* this click only dismissed a selection */
+        var now = Date.now();
+        if (now - lastFire < 350) return;                          /* stray double-click */
+        lastFire = now;
+        if (!isAnswered()) reveal();
+        else goNext();
+    }, false);
+    /* cursor + tooltip affordance over the active strip */
+    var hintEl = null;
+    function clearHint() {
+        if (!hintEl) return;
+        hintEl.style.cursor = '';
+        hintEl.removeAttribute('title');
+        hintEl = null;
+    }
+    document.addEventListener('mousemove', function (e) {
+        if (!document.body.classList.contains('in-nbme-question')) { clearHint(); return; }
+        if (!armed() || interactive(e.target) || !inZone(e.clientX, e.clientY)) { clearHint(); return; }
+        var main = e.target.closest ? e.target.closest('.uw-main') : null;
+        if (!main) { clearHint(); return; }
+        if (hintEl && hintEl !== main) clearHint();
+        hintEl = main;
+        hintEl.style.cursor = 'pointer';
+        hintEl.setAttribute('title', isAnswered() ? 'Next question' : 'Reveal answer');
+    }, { passive: true });
+})();
+</script>
 </body>
 </html>
