@@ -3921,12 +3921,11 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
         if (!isAnswered()) reveal();
         else goNext();
     }, false);
-    /* cursor + tooltip affordance over the active strip */
+    /* cursor-only affordance over the active strip (no title tooltip by request) */
     var hintEl = null;
     function clearHint() {
         if (!hintEl) return;
         hintEl.style.cursor = '';
-        hintEl.removeAttribute('title');
         hintEl = null;
     }
     document.addEventListener('mousemove', function (e) {
@@ -3937,7 +3936,6 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
         if (hintEl && hintEl !== main) clearHint();
         hintEl = main;
         hintEl.style.cursor = 'pointer';
-        hintEl.setAttribute('title', isAnswered() ? 'Next question' : 'Reveal answer');
     }, { passive: true });
 })();
 </script>
