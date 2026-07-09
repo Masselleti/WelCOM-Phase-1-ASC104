@@ -3375,8 +3375,8 @@ html.ma-phone body.in-nbme-question #ma-nav-fab {
     z-index: 1500; -webkit-tap-highlight-color: transparent;
 }
 #ma-nav-fab:active { transform: scale(.94); }
-/* Reverse (dark) mode: keep the white disc + black lines; lighten border for contrast */
-html.ma-phone body:has(.nbme-skin.nbme-reverse) #ma-nav-fab { background: #fff; color: #111; border-color: #cfd3da; }
+/* Reverse (dark) mode: navy disc matching the dashboard dark theme (2026-07-09) */
+html.ma-phone body:has(.nbme-skin.nbme-reverse) #ma-nav-fab { background: #1e293b; color: #e2e8f0; border-color: #334155; }
 
 html.ma-phone body.in-nbme-question.ma-nav-open #ma-nav-scrim {
     display: block; position: fixed; inset: 0;
@@ -3909,63 +3909,6 @@ html.ma-phone .nbme-skin.uw-skin .uw-header .ma-tools-toggle.ma-has-active .ma-t
 })();
 </script>
 
-<!-- ma-reverse-navy (2026-07-08): the Reverse Color (dark) exam view matches the
-     dashboard's dark-navy theme (html.dark --bg #0f172a, cards #1e293b,
-     borders #334155) instead of the old neutral greys (#1a1a1a/#232323/#2a2a2a).
-     The page canvas is keyed on a plain ma-reverse-navy class kept in sync by
-     the script below: the :has()-based body rule (ma-dark-overscroll-fix,
-     recolored to the same navy) provably matches but is not re-applied by the
-     cascade after a runtime class flip on some engines (Chrome :has
-     invalidation quirk), so a class toggle is the reliable path. -->
-<style id="ma-reverse-navy">
-.nbme-skin.uw-skin.nbme-reverse { background: #0f172a !important; }
-.nbme-skin.uw-skin.nbme-reverse .uw-main { background: #0f172a !important; }
-.nbme-skin.uw-skin.nbme-reverse .uw-body { background: #0f172a !important; }
-.nbme-skin.uw-skin.nbme-reverse .answer-options { background: #0f172a !important; border-color: #334155 !important; }
-/* explanations carry NO shade of their own — same background as the page
-   (user request 2026-07-09); the border-top separator keeps the navy border */
-.nbme-skin.uw-skin.nbme-reverse .commentary { background: transparent !important; border-color: #334155 !important; }
-.nbme-skin.uw-skin.nbme-reverse .uw-sidebar { background: #1e293b !important; border-color: #334155 !important; }
-.nbme-skin.uw-skin.nbme-reverse .uw-bottom-bar { background: #1e293b !important; border-color: #334155 !important; }
-/* page canvas (incl. rubber-band overscroll): class-keyed, repeated for
-   specificity (0,4,1) so it also outranks the :has() canvas rules wherever
-   those do apply (e.g. iOS Safari) */
-html.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy,
-body.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy {
-    background: #0f172a !important;
-}
-/* Lab Values popup dark mode in the same navy (overrides the grey .lv-dark
-   palette by document order — same selectors, later in the document; the 12
-   viewers without an lv-overlay simply never match these) */
-.lv-overlay.lv-dark .lv-window { background: #0f172a; border-color: #334155; }
-.lv-overlay.lv-dark .lv-titlebar { background: #1e293b; border-bottom-color: #334155; }
-.lv-overlay.lv-dark .lv-toolbar { background: #0f172a; border-bottom-color: #334155; }
-.lv-overlay.lv-dark .lv-search { background: #0b1220; border-color: #334155; }
-.lv-overlay.lv-dark .lv-tabs { background: #0f172a; border-bottom-color: #334155; }
-.lv-overlay.lv-dark .lv-tab { background: #0f172a; border-color: #334155; }
-.lv-overlay.lv-dark .lv-tab:hover { background: #1e293b; }
-.lv-overlay.lv-dark .lv-tab.is-active { background: #1e293b; border-bottom-color: #1e293b; }
-.lv-overlay.lv-dark .lv-panel { background: #1e293b; }
-.lv-overlay.lv-dark .lv-table thead th { background: #1e293b; border-bottom-color: #334155; }
-.lv-overlay.lv-dark .lv-table tbody td { border-bottom-color: #334155; }
-</style>
-<script id="ma-reverse-navy-js">
-(function () {
-    function sync() {
-        var on = !!document.querySelector('body.in-nbme-question .nbme-skin.uw-skin.nbme-reverse');
-        document.documentElement.classList.toggle('ma-reverse-navy', on);
-        document.body.classList.toggle('ma-reverse-navy', on);
-    }
-    /* reverse toggling is a class-only change: attribute observation required
-       (childList alone never fires). sync() runs synchronously — timers get
-       throttled in background tabs. classList.toggle(name, force) no-ops when
-       unchanged, so the self-triggered pass terminates immediately. */
-    var mo = new MutationObserver(sync);
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-    sync();
-})();
-</script>
-
 <!-- ma-reverse-sticky (2026-07-09): Reverse Color survives re-renders. The
      engine tracks dark mode purely as the nbme-reverse class on the active
      container, and every re-render (answering, Next/Previous) rebuilds that
@@ -4046,5 +3989,71 @@ body.ma-reverse-navy::-webkit-scrollbar-thumb { background: #334155; border-radi
 html.ma-reverse-navy::-webkit-scrollbar-thumb:hover,
 body.ma-reverse-navy::-webkit-scrollbar-thumb:hover { background: #475569; }
 </style>
+
+<!-- ma-reverse-navy (2026-07-08): the Reverse Color (dark) exam view matches the
+     dashboard's dark-navy theme (html.dark --bg #0f172a, cards #1e293b,
+     borders #334155) instead of the old neutral greys (#1a1a1a/#232323/#2a2a2a).
+     The page canvas is keyed on a plain ma-reverse-navy class kept in sync by
+     the script below: the :has()-based body rule (ma-dark-overscroll-fix,
+     recolored to the same navy) provably matches but is not re-applied by the
+     cascade after a runtime class flip on some engines (Chrome :has
+     invalidation quirk), so a class toggle is the reliable path. -->
+<style id="ma-reverse-navy">
+.nbme-skin.uw-skin.nbme-reverse { background: #0f172a !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-main { background: #0f172a !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-body { background: #0f172a !important; }
+.nbme-skin.uw-skin.nbme-reverse .answer-options { background: #0f172a !important; border-color: #334155 !important; }
+/* explanations carry NO shade of their own — same background as the page
+   (user request 2026-07-09); the border-top separator keeps the navy border */
+.nbme-skin.uw-skin.nbme-reverse .commentary { background: transparent !important; border-color: #334155 !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-sidebar { background: #1e293b !important; border-color: #334155 !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-bottom-bar { background: #1e293b !important; border-color: #334155 !important; }
+/* page canvas (incl. rubber-band overscroll): class-keyed, repeated for
+   specificity (0,4,1) so it also outranks the :has() canvas rules wherever
+   those do apply (e.g. iOS Safari) */
+html.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy,
+body.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy {
+    background: #0f172a !important;
+}
+/* Phone navigator FAB (☰, bottom left) follows the navy theme in reverse
+   mode instead of staying a white disc (user request 2026-07-09). Keyed on
+   the script-synced class (reliable) — the :has() twin in ma-phone-fix is
+   recolored in place to the same values for browsers that apply it. */
+html.ma-phone body.ma-reverse-navy #ma-nav-fab {
+    background: #1e293b;
+    color: #e2e8f0;
+    border-color: #334155;
+}
+/* Lab Values popup dark mode in the same navy (overrides the grey .lv-dark
+   palette by document order — same selectors, later in the document; the 12
+   viewers without an lv-overlay simply never match these) */
+.lv-overlay.lv-dark .lv-window { background: #0f172a; border-color: #334155; }
+.lv-overlay.lv-dark .lv-titlebar { background: #1e293b; border-bottom-color: #334155; }
+.lv-overlay.lv-dark .lv-toolbar { background: #0f172a; border-bottom-color: #334155; }
+.lv-overlay.lv-dark .lv-search { background: #0b1220; border-color: #334155; }
+.lv-overlay.lv-dark .lv-tabs { background: #0f172a; border-bottom-color: #334155; }
+.lv-overlay.lv-dark .lv-tab { background: #0f172a; border-color: #334155; }
+.lv-overlay.lv-dark .lv-tab:hover { background: #1e293b; }
+.lv-overlay.lv-dark .lv-tab.is-active { background: #1e293b; border-bottom-color: #1e293b; }
+.lv-overlay.lv-dark .lv-panel { background: #1e293b; }
+.lv-overlay.lv-dark .lv-table thead th { background: #1e293b; border-bottom-color: #334155; }
+.lv-overlay.lv-dark .lv-table tbody td { border-bottom-color: #334155; }
+</style>
+<script id="ma-reverse-navy-js">
+(function () {
+    function sync() {
+        var on = !!document.querySelector('body.in-nbme-question .nbme-skin.uw-skin.nbme-reverse');
+        document.documentElement.classList.toggle('ma-reverse-navy', on);
+        document.body.classList.toggle('ma-reverse-navy', on);
+    }
+    /* reverse toggling is a class-only change: attribute observation required
+       (childList alone never fires). sync() runs synchronously — timers get
+       throttled in background tabs. classList.toggle(name, force) no-ops when
+       unchanged, so the self-triggered pass terminates immediately. */
+    var mo = new MutationObserver(sync);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    sync();
+})();
+</script>
 </body>
 </html>
