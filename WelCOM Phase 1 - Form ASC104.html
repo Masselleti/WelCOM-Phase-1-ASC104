@@ -3965,5 +3965,48 @@ body.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy {
     sync();
 })();
 </script>
+
+<!-- ma-reverse-sticky (2026-07-09): Reverse Color survives re-renders. The
+     engine tracks dark mode purely as the nbme-reverse class on the active
+     container, and every re-render (answering, Next/Previous) rebuilds that
+     container without it. This wraps nbmeToggleReverse() to remember the
+     user's choice and re-applies the class synchronously whenever a render
+     drops it (no timers — background tabs throttle them). Only re-ADDS while
+     on; turning Reverse Color off keeps working exactly as before. -->
+<script id="ma-reverse-sticky-js">
+(function () {
+    if (window.maReverseSticky) return;
+    function target() {
+        return document.querySelector('.uw-skin') || document.getElementById('learning-questions');
+    }
+    var on = (function () {
+        var t = target();
+        return !!(t && t.classList.contains('nbme-reverse'));
+    })();
+    function apply() {
+        if (!on) return;
+        var t = target();
+        if (t && !t.classList.contains('nbme-reverse')) t.classList.add('nbme-reverse');
+    }
+    var orig = window.nbmeToggleReverse;
+    if (typeof orig === 'function' && !orig.__maSticky) {
+        var wrapped = function () {
+            var r = orig.apply(this, arguments);
+            var t = target();
+            on = !!(t && t.classList.contains('nbme-reverse'));
+            return r;
+        };
+        wrapped.__maSticky = true;
+        window.nbmeToggleReverse = wrapped;
+    }
+    window.maReverseSticky = function (force) {
+        if (force !== undefined) { on = !!force; apply(); }
+        return on;
+    };
+    var mo = new MutationObserver(apply);
+    mo.observe(document.body, { childList: true, subtree: true });
+    apply();
+})();
+</script>
 </body>
 </html>
