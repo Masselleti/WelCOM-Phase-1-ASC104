@@ -3961,5 +3961,20 @@ body.in-nbme-question:has(.nbme-skin.uw-skin.nbme-reverse) {
     border-bottom: 1px solid rgba(255,255,255,0.28);
 }
 </style>
+
+<!-- ma-narrow-rail (2026-07-08): question-number rail ~20% narrower (user
+     request). Overrides the base (80/110), touch fixed rail (100px + matching
+     container padding), and <=768px (56/70) widths. The phone off-canvas
+     drawer keeps 140px - its html.ma-phone selectors outrank these. -->
+<style id="ma-narrow-rail">
+.uw-sidebar { min-width: 64px; max-width: 88px; }
+@media (hover: none) and (pointer: coarse) {
+    .nbme-skin.uw-skin { padding-left: 80px !important; }
+    .nbme-skin.uw-skin .uw-sidebar { width: 80px !important; }
+}
+@media (max-width: 768px) {
+    .uw-sidebar { min-width: 45px; max-width: 56px; }
+}
+</style>
 </body>
 </html>
