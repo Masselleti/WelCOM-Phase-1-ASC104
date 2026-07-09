@@ -3922,7 +3922,9 @@ html.ma-phone .nbme-skin.uw-skin .uw-header .ma-tools-toggle.ma-has-active .ma-t
 .nbme-skin.uw-skin.nbme-reverse .uw-main { background: #0f172a !important; }
 .nbme-skin.uw-skin.nbme-reverse .uw-body { background: #0f172a !important; }
 .nbme-skin.uw-skin.nbme-reverse .answer-options { background: #0f172a !important; border-color: #334155 !important; }
-.nbme-skin.uw-skin.nbme-reverse .commentary { background: #1e293b !important; border-color: #334155 !important; }
+/* explanations carry NO shade of their own — same background as the page
+   (user request 2026-07-09); the border-top separator keeps the navy border */
+.nbme-skin.uw-skin.nbme-reverse .commentary { background: transparent !important; border-color: #334155 !important; }
 .nbme-skin.uw-skin.nbme-reverse .uw-sidebar { background: #1e293b !important; border-color: #334155 !important; }
 .nbme-skin.uw-skin.nbme-reverse .uw-bottom-bar { background: #1e293b !important; border-color: #334155 !important; }
 /* page canvas (incl. rubber-band overscroll): class-keyed, repeated for
@@ -3932,6 +3934,20 @@ html.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy,
 body.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy {
     background: #0f172a !important;
 }
+/* Lab Values popup dark mode in the same navy (overrides the grey .lv-dark
+   palette by document order — same selectors, later in the document; the 12
+   viewers without an lv-overlay simply never match these) */
+.lv-overlay.lv-dark .lv-window { background: #0f172a; border-color: #334155; }
+.lv-overlay.lv-dark .lv-titlebar { background: #1e293b; border-bottom-color: #334155; }
+.lv-overlay.lv-dark .lv-toolbar { background: #0f172a; border-bottom-color: #334155; }
+.lv-overlay.lv-dark .lv-search { background: #0b1220; border-color: #334155; }
+.lv-overlay.lv-dark .lv-tabs { background: #0f172a; border-bottom-color: #334155; }
+.lv-overlay.lv-dark .lv-tab { background: #0f172a; border-color: #334155; }
+.lv-overlay.lv-dark .lv-tab:hover { background: #1e293b; }
+.lv-overlay.lv-dark .lv-tab.is-active { background: #1e293b; border-bottom-color: #1e293b; }
+.lv-overlay.lv-dark .lv-panel { background: #1e293b; }
+.lv-overlay.lv-dark .lv-table thead th { background: #1e293b; border-bottom-color: #334155; }
+.lv-overlay.lv-dark .lv-table tbody td { border-bottom-color: #334155; }
 </style>
 <script id="ma-reverse-navy-js">
 (function () {
