@@ -1837,158 +1837,7 @@
                 .row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px;}
                 button{background:#4a525c;color:#fff;border:1px solid #1a1d22;padding:14px 0;font-size:16px;cursor:pointer;border-radius:3px;font-family:inherit;}
                 button:hover{background:#5a626c;} button.op{background:#2a6694;} button.eq{background:#1f8a4c;} button.cl{background:#c0392b;}
-            
-
-/* === Ports from UWorld customizations === */
-
-/* Cap question/explanation/answer images so they don't dominate the screen */
-.nbme-skin .question-stem img,
-.nbme-skin .commentary-content img,
-.nbme-skin .answer-option img,
-.nbme-skin.uw-skin .question-stem img,
-.nbme-skin.uw-skin .commentary-content img,
-.nbme-skin.uw-skin .answer-option img {
-    max-width: 700px !important;
-    max-height: 60vh !important;
-    width: auto !important;
-    height: auto !important;
-    object-fit: contain;
-}
-
-/* Restore list indentation in explanations (global * { padding:0 } reset strips it) */
-.nbme-skin .commentary-content ol,
-.nbme-skin .commentary-content ul,
-.nbme-skin .question-stem ol,
-.nbme-skin .question-stem ul,
-.nbme-skin.uw-skin .commentary-content ol,
-.nbme-skin.uw-skin .commentary-content ul,
-.nbme-skin.uw-skin .question-stem ol,
-.nbme-skin.uw-skin .question-stem ul {
-    padding-left: 36px !important;
-    margin: 8px 0 !important;
-    list-style-position: outside !important;
-}
-.nbme-skin .commentary-content li,
-.nbme-skin .question-stem li,
-.nbme-skin.uw-skin .commentary-content li,
-.nbme-skin.uw-skin .question-stem li {
-    margin-bottom: 6px;
-    line-height: 1.55;
-    padding-left: 4px;
-}
-.nbme-skin .commentary-content ol,
-.nbme-skin.uw-skin .commentary-content ol { list-style-type: decimal; }
-.nbme-skin .commentary-content ul,
-.nbme-skin.uw-skin .commentary-content ul { list-style-type: disc; }
-
-/* Grid borders on explanation tables for easy scanning */
-.nbme-skin .commentary-content table,
-.nbme-skin.uw-skin .commentary-content table {
-    border-collapse: collapse !important;
-    border: 1px solid #b0b8c4 !important;
-    margin: 12px auto !important;
-    background: #fff !important;
-    max-width: 900px !important;
-    width: auto !important;
-}
-.nbme-skin .commentary-content table td,
-.nbme-skin .commentary-content table th,
-.nbme-skin.uw-skin .commentary-content table td,
-.nbme-skin.uw-skin .commentary-content table th {
-    border: 1px solid #b0b8c4 !important;
-    padding: 8px 14px !important;
-    vertical-align: top !important;
-    text-align: left;
-}
-.nbme-skin .commentary-content table th,
-.nbme-skin .commentary-content table tr:first-child td,
-.nbme-skin.uw-skin .commentary-content table th,
-.nbme-skin.uw-skin .commentary-content table tr:first-child td {
-    background: #eef3f8 !important;
-    font-weight: 700;
-}
-.nbme-skin .commentary-content table tr:first-child td[colspan],
-.nbme-skin.uw-skin .commentary-content table tr:first-child td[colspan] {
-    text-align: center;
-}
-
-/* Hyperlinks in question stems / answers / explanations — underlined blue */
-.nbme-skin .question-stem a,
-.nbme-skin .commentary-content a,
-.nbme-skin .answer-option a,
-.nbme-skin.uw-skin .question-stem a,
-.nbme-skin.uw-skin .commentary-content a,
-.nbme-skin.uw-skin .answer-option a {
-    color: #1f72b8 !important;
-    text-decoration: underline !important;
-    cursor: pointer;
-}
-.nbme-skin .question-stem a:hover,
-.nbme-skin .commentary-content a:hover,
-.nbme-skin .answer-option a:hover,
-.nbme-skin.uw-skin .question-stem a:hover,
-.nbme-skin.uw-skin .commentary-content a:hover,
-.nbme-skin.uw-skin .answer-option a:hover {
-    color: #155389 !important;
-}
-
-/* Hide the static Medicine Academy footer text */
-.ma-footer { display: none !important; }
-
-
-
-/* Hide Medicine Academy branding from the topbar — kept in DOM for the
-   integrity check, just visually invisible. */
-.topbar .brand,
-.topbar .brand img,
-.topbar .brand .title,
-.topbar .actions .btn-visit {
-    display: none !important;
-    visibility: hidden !important;
-}
-/* Adjust topbar layout now that the brand block is gone */
-.topbar .topbar-left { flex: 0 0 auto; }
-/* Also hide the splash overlay's Medicine Academy title (the splash itself
-   stays so the load animation still plays) — only the brand text disappears */
-.ma-splash-box .title { display: none !important; }
-
-
-    
-/* Round icon-only nav buttons in the question header
-   (no text labels, no counter). Overrides the older .uw-nav-btn style. */
-.uw-nav-btn {
-    background: transparent !important;
-    border: 1.5px solid #fff !important;
-    color: #fff !important;
-    width: 34px !important;
-    height: 34px !important;
-    border-radius: 50% !important;
-    padding: 0 !important;
-    flex-direction: row !important;
-    gap: 0 !important;
-    font-size: 16px !important;
-    line-height: 1 !important;
-    align-items: center;
-    justify-content: center;
-    transition: border-color 0.15s, color 0.15s;
-}
-.uw-nav-btn:hover:not(:disabled) {
-    color: #5cb8ff !important;
-    border-color: #5cb8ff !important;
-}
-.uw-nav-btn .uw-nav-icon {
-    font-size: 16px !important;
-    line-height: 1 !important;
-    color: #fff !important;   /* show the ←/→ glyphs (onclick=navQ doesn't match the SVG-arrow selectors) */
-}
-.uw-nav-btn > span:not(.uw-nav-icon) {
-    display: none !important;
-}
-.uw-nav-counter {
-    display: none !important;
-}
-
-</style></head><body>
+            </style></head><body>
                 <div id="d">0</div>
                 <div class="row"><button class="cl" onclick="d.textContent='0'">C</button><button onclick="bs()">⌫</button><button class="op" onclick="o('%')">%</button><button class="op" onclick="o('/')">÷</button></div>
                 <div class="row"><button onclick="i('7')">7</button><button onclick="i('8')">8</button><button onclick="i('9')">9</button><button class="op" onclick="o('*')">×</button></div>
@@ -3941,13 +3790,13 @@ html.ma-phone .nbme-skin.uw-skin .answer-option img {
      dark/reverse mode, the page canvas (html/body) stayed white (the exam shell
      forces body background #fff), so on touch layouts where the page itself
      scrolls, rubber-band overscroll flashed a white band beyond the exam
-     surface. Paint the canvas to match the reverse surface (#1a1a1a). Keyed to
+     surface. Paint the canvas to match the reverse surface (#0f172a). Keyed to
      the ACTIVE view's nbme-reverse class (engines strip skin classes from the
      inactive container each render), so a light exam keeps its white canvas. -->
 <style id="ma-dark-overscroll-fix">
 html:has(body.in-nbme-question .nbme-skin.uw-skin.nbme-reverse),
 body.in-nbme-question:has(.nbme-skin.uw-skin.nbme-reverse) {
-    background: #1a1a1a !important;
+    background: #0f172a !important;
 }
 </style>
 
@@ -4057,6 +3906,47 @@ html.ma-phone .nbme-skin.uw-skin .uw-header .ma-tools-toggle.ma-has-active .ma-t
     var mo = new MutationObserver(function () { ensure(); });
     mo.observe(document.body, { childList: true, subtree: true });
     ensure();
+})();
+</script>
+
+<!-- ma-reverse-navy (2026-07-08): the Reverse Color (dark) exam view matches the
+     dashboard's dark-navy theme (html.dark --bg #0f172a, cards #1e293b,
+     borders #334155) instead of the old neutral greys (#1a1a1a/#232323/#2a2a2a).
+     The page canvas is keyed on a plain ma-reverse-navy class kept in sync by
+     the script below: the :has()-based body rule (ma-dark-overscroll-fix,
+     recolored to the same navy) provably matches but is not re-applied by the
+     cascade after a runtime class flip on some engines (Chrome :has
+     invalidation quirk), so a class toggle is the reliable path. -->
+<style id="ma-reverse-navy">
+.nbme-skin.uw-skin.nbme-reverse { background: #0f172a !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-main { background: #0f172a !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-body { background: #0f172a !important; }
+.nbme-skin.uw-skin.nbme-reverse .answer-options { background: #0f172a !important; border-color: #334155 !important; }
+.nbme-skin.uw-skin.nbme-reverse .commentary { background: #1e293b !important; border-color: #334155 !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-sidebar { background: #1e293b !important; border-color: #334155 !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-bottom-bar { background: #1e293b !important; border-color: #334155 !important; }
+/* page canvas (incl. rubber-band overscroll): class-keyed, repeated for
+   specificity (0,4,1) so it also outranks the :has() canvas rules wherever
+   those do apply (e.g. iOS Safari) */
+html.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy,
+body.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy {
+    background: #0f172a !important;
+}
+</style>
+<script id="ma-reverse-navy-js">
+(function () {
+    function sync() {
+        var on = !!document.querySelector('body.in-nbme-question .nbme-skin.uw-skin.nbme-reverse');
+        document.documentElement.classList.toggle('ma-reverse-navy', on);
+        document.body.classList.toggle('ma-reverse-navy', on);
+    }
+    /* reverse toggling is a class-only change: attribute observation required
+       (childList alone never fires). sync() runs synchronously — timers get
+       throttled in background tabs. classList.toggle(name, force) no-ops when
+       unchanged, so the self-triggered pass terminates immediately. */
+    var mo = new MutationObserver(sync);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    sync();
 })();
 </script>
 </body>
