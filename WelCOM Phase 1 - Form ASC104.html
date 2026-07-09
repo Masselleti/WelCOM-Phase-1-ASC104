@@ -4008,5 +4008,43 @@ body.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy.ma-reverse-navy {
     apply();
 })();
 </script>
+
+<!-- ma-reverse-scrollbar (2026-07-09): in Reverse Color mode the rail/main/page
+     scrollbars rendered as light native tracks (glaring white strip on the navy
+     theme, worst in the UWorld builds which have no scrollbar CSS at all).
+     Scoped to reverse only - light mode keeps whatever it had. Thumb/track use
+     the ma-reverse-navy palette (#334155 on transparent / #0f172a). -->
+<style id="ma-reverse-scrollbar">
+.nbme-skin.uw-skin.nbme-reverse ::-webkit-scrollbar,
+.nbme-skin.uw-skin.nbme-reverse::-webkit-scrollbar {
+    width: 8px; height: 8px; background: transparent;
+}
+.nbme-skin.uw-skin.nbme-reverse ::-webkit-scrollbar-track,
+.nbme-skin.uw-skin.nbme-reverse::-webkit-scrollbar-track {
+    background: transparent; border: none;
+}
+.nbme-skin.uw-skin.nbme-reverse ::-webkit-scrollbar-thumb,
+.nbme-skin.uw-skin.nbme-reverse::-webkit-scrollbar-thumb {
+    background: #334155; border-radius: 10px; border: none;
+}
+.nbme-skin.uw-skin.nbme-reverse ::-webkit-scrollbar-thumb:hover,
+.nbme-skin.uw-skin.nbme-reverse::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+.nbme-skin.uw-skin.nbme-reverse ::-webkit-scrollbar-corner,
+.nbme-skin.uw-skin.nbme-reverse::-webkit-scrollbar-corner {
+    background: transparent;
+}
+/* page-level scrollbar while a reverse exam is active (touch layouts scroll
+   the page itself); keyed on the script-synced class, not :has() */
+html.ma-reverse-navy::-webkit-scrollbar,
+body.ma-reverse-navy::-webkit-scrollbar { width: 8px; height: 8px; background: #0f172a; }
+html.ma-reverse-navy::-webkit-scrollbar-track,
+body.ma-reverse-navy::-webkit-scrollbar-track { background: #0f172a; }
+html.ma-reverse-navy::-webkit-scrollbar-thumb,
+body.ma-reverse-navy::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; border: none; }
+html.ma-reverse-navy::-webkit-scrollbar-thumb:hover,
+body.ma-reverse-navy::-webkit-scrollbar-thumb:hover { background: #475569; }
+</style>
 </body>
 </html>
