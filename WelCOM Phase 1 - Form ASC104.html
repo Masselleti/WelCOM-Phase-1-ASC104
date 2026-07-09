@@ -3976,5 +3976,89 @@ body.in-nbme-question:has(.nbme-skin.uw-skin.nbme-reverse) {
     .uw-sidebar { min-width: 45px; max-width: 56px; }
 }
 </style>
+
+<!-- ===== ma-tools-reveal: phone header tools behind a top-right toggle (2026-07-08) =====
+     On the phone layout (html.ma-phone, set by ma-phone-fix) the header tools
+     row (Lab Values / Notes / Calculator / Reverse Color / Text Zoom) is
+     hidden by default; a "⋮ Tools" button at the top right of the exam header
+     reveals it in place ("✕ Hide" collapses it again). State lives in the
+     ma-tools-open class on <html>, so it survives question re-renders and
+     stays put while navigating. Desktop and iPad (no ma-phone) are untouched. -->
+<style id="ma-tools-reveal">
+.ma-tools-toggle { display: none !important; }
+html.ma-phone .nbme-skin.uw-skin .uw-header .ma-tools-toggle { display: flex !important; }
+html.ma-phone .nbme-skin.uw-skin .uw-header-tools { display: none !important; }
+html.ma-phone.ma-tools-open .nbme-skin.uw-skin .uw-header-tools { display: flex !important; }
+/* A hidden tool in the active state (e.g. Notes' is-active glow on a question
+   that carries a note) must not go dark: mirror it onto the toggle. */
+html.ma-phone .nbme-skin.uw-skin .uw-header .ma-tools-toggle.ma-has-active { background: rgba(255,255,255,0.12); }
+html.ma-phone .nbme-skin.uw-skin .uw-header .ma-tools-toggle.ma-has-active .ma-tools-toggle-label::after { content: " \2022"; color: #ffd54a; }
+</style>
+<script id="ma-tools-reveal-js">
+(function () {
+    var doc = document.documentElement;
+    function sync() {
+        var open = doc.classList.contains('ma-tools-open');
+        var btns = document.querySelectorAll('.ma-tools-toggle');
+        for (var i = 0; i < btns.length; i++) {
+            var b = btns[i];
+            var ic = b.querySelector('.uw-tool-icon');
+            var lb = b.querySelector('.ma-tools-toggle-label');
+            var wi = open ? '✕' : '⋮';
+            var wl = open ? 'Hide' : 'Tools';
+            if (ic && ic.textContent !== wi) ic.textContent = wi;
+            if (lb && lb.textContent !== wl) lb.textContent = wl;
+            if (b.getAttribute('aria-expanded') !== String(open)) b.setAttribute('aria-expanded', String(open));
+            var hdr = b.closest ? b.closest('.uw-header') : null;
+            var act = hdr && hdr.querySelector('.uw-header-tools .uw-tool.is-active');
+            b.classList.toggle('ma-has-active', !!act);
+        }
+    }
+    function onTap(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        doc.classList.toggle('ma-tools-open');
+        sync();
+    }
+    function ensure() {
+        /* inject into every .uw-header regardless of ancestors: some engines
+           (WelCOM/COMSAE) add the nbme-skin/uw-skin classes to the container
+           at runtime, after the header exists. The CSS gate (html.ma-phone +
+           .nbme-skin.uw-skin ancestor) keeps the button invisible anywhere
+           it should not show. */
+        var headers = document.querySelectorAll('.uw-header');
+        for (var i = 0; i < headers.length; i++) {
+            var h = headers[i];
+            if (h.querySelector('.ma-tools-toggle')) continue;
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'uw-tool ma-tools-toggle';
+            b.title = 'Show or hide the exam tools';
+            b.setAttribute('aria-label', 'Show or hide the exam tools');
+            b.setAttribute('aria-expanded', 'false');
+            b.innerHTML = '<span class="uw-tool-icon">⋮</span><span class="ma-tools-toggle-label">Tools</span>';
+            b.addEventListener('click', onTap);
+            var tools = h.querySelector('.uw-header-tools');
+            if (tools) h.insertBefore(b, tools);
+            else h.appendChild(b);
+        }
+        sync();
+    }
+    window.maToolsReveal = function (on) {
+        doc.classList.toggle('ma-tools-open', on === undefined ? !doc.classList.contains('ma-tools-open') : !!on);
+        sync();
+        return doc.classList.contains('ma-tools-open');
+    };
+    /* ensure() runs synchronously in the observer callback: a setTimeout
+       debounce is throttled to >=1s in hidden/background tabs, which delays
+       (or, with intensive throttling, defers for up to a minute) re-injecting
+       the toggle after a question render. MutationObserver batching already
+       coalesces same-task mutation bursts, and ensure()/sync() only write on
+       change, so the self-triggered second pass terminates immediately. */
+    var mo = new MutationObserver(function () { ensure(); });
+    mo.observe(document.body, { childList: true, subtree: true });
+    ensure();
+})();
+</script>
 </body>
 </html>
