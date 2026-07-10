@@ -3377,6 +3377,20 @@ html.ma-phone body.in-nbme-question #ma-nav-fab {
     z-index: 1500; -webkit-tap-highlight-color: transparent;
 }
 #ma-nav-fab:active { transform: scale(.94); }
+
+/* Phone: pin the highlight color palette to a fixed bar just above the bottom
+   bar so it never overlaps the selected text or the native iOS selection menu
+   (user request 2026-07-10). Overrides the inline top/left showPalette sets. */
+html.ma-phone #ma-hl-palette,
+html.ma-phone #highlight-palette {
+    position: fixed !important;
+    left: 50% !important; right: auto !important; top: auto !important;
+    bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+    max-width: calc(100vw - 24px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.12) !important;
+}
 /* Reverse (dark) mode: navy disc matching the dashboard dark theme (2026-07-09) */
 html.ma-phone body:has(.nbme-skin.nbme-reverse) #ma-nav-fab { background: #1e293b; color: #e2e8f0; border-color: #334155; }
 
