@@ -3413,6 +3413,10 @@ html.ma-phone .nbme-skin.uw-skin {
     align-content: stretch !important;
 }
 html.ma-phone .nbme-skin.uw-skin .uw-body { overflow: visible !important; grid-template-columns: minmax(0, 1fr) !important; }
+/* Kill the exam .content bottom gutter (120px) + its padding transition on
+   phones so it can't strand extra dead space below the bottom bar when the
+   transition is throttled mid-flight (user report 2026-07-10). */
+html.ma-phone body.in-nbme-question .content { padding: 0 !important; transition: none !important; }
 html.ma-phone .nbme-skin.uw-skin .uw-main { overflow: visible !important; height: auto !important; max-height: none !important; min-width: 0 !important; max-width: 100vw !important; }
 
 /* Question column takes the full width; navigator becomes an off-canvas drawer */
