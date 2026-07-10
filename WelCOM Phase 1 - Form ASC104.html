@@ -4010,6 +4010,17 @@ body.ma-reverse-navy::-webkit-scrollbar-thumb:hover { background: #475569; }
    (user request 2026-07-09); the border-top separator keeps the navy border */
 .nbme-skin.uw-skin.nbme-reverse .commentary { background: transparent !important; border-color: #334155 !important; }
 .nbme-skin.uw-skin.nbme-reverse .uw-sidebar { background: #1e293b !important; border-color: #334155 !important; }
+/* Reverse: repaint the rail's current-question highlight + status bullets to
+   the navy theme (reverse rail current-question highlight; the NBME engine
+   kept the day-mode light gray under light numbers - unreadable light-on-light;
+   user report 2026-07-09). Also styles the phone drawer - same .uw-sidebar. */
+.nbme-skin.uw-skin.nbme-reverse .uw-q-item:hover { background: #334155 !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-q-item.is-current { background: #334155 !important; color: #fff !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-q-item.is-current .uw-q-num { color: #fff !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-q-item.is-current .uw-q-bullet { background: #6aa9ff !important; border-color: #6aa9ff !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-q-item.is-answered .uw-q-bullet { background: #58a4e8 !important; border-color: #58a4e8 !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-q-item.is-correct .uw-q-bullet { background: #5ec07a !important; border-color: #5ec07a !important; }
+.nbme-skin.uw-skin.nbme-reverse .uw-q-item.is-incorrect .uw-q-bullet { background: #ff6b6b !important; border-color: #ff6b6b !important; }
 .nbme-skin.uw-skin.nbme-reverse .uw-bottom-bar { background: #1e293b !important; border-color: #334155 !important; }
 /* page canvas (incl. rubber-band overscroll): class-keyed, repeated for
    specificity (0,4,1) so it also outranks the :has() canvas rules wherever
