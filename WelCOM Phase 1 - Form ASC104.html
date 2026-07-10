@@ -3806,8 +3806,13 @@ body.in-nbme-question:has(.nbme-skin.uw-skin.nbme-reverse) {
 <!-- ma-engine-name (2026-07-08): show which engine/form this viewer is in the
      top-left "Question Status" header box. -->
 <style id="ma-engine-name-style">
-.uw-header-left-name {
+/* "Question" row matches the form-name row - same size/weight/spacing
+   (user request 2026-07-10). */
+.uw-header-left-name,
+.uw-header-left-title {
     font-size: 11px; font-weight: 800; line-height: 1.25; letter-spacing: 0.4px;
+}
+.uw-header-left-name {
     margin-bottom: 3px; padding-bottom: 3px;
     border-bottom: 1px solid rgba(255,255,255,0.28);
 }
