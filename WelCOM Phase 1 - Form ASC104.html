@@ -2645,7 +2645,9 @@
             return processed;
         }
 
-        function openMediaModal(src, cap) {
+        function openMediaModal(src, cap, fromLink) {
+            // Phone layout: inline images already display in place - suppress the zoom modal (exhibit links still open it).
+            if (!fromLink && document.documentElement.classList.contains('ma-phone')) return;
             const mc = document.getElementById('modal-content');
             mc.innerHTML = `<img src="${src}">`;
             document.getElementById('media-modal').classList.add('show');
@@ -3265,7 +3267,7 @@
                 // Try to open the image in the existing media modal
                 try {
                     if (typeof openMediaModal === 'function') {
-                        openMediaModal(href, link.getAttribute('title') || '');
+                        openMediaModal(href, link.getAttribute('title') || '', true);
                     }
                 } catch (err) { console.warn(err); }
                 return;
