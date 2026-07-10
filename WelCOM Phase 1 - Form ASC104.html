@@ -2157,7 +2157,7 @@
             } else {
                 note.style.display = 'none';
                 lmBlocks.forEach(b => {
-                    grid.appendChild(lmRow('block', String(b.id), b.name, (b.count + '-item section'), b.count, b.count === 0));
+                    grid.appendChild(lmRow('block', String(b.id), b.name, b.count + ' Questions', b.count, b.count === 0));
                 });
             }
         }
@@ -2279,7 +2279,7 @@
             } else {
                 note.style.display = 'none';
                 lmBlocks.forEach(b => {
-                    grid.appendChild(exRow('block', String(b.id), b.name, (b.count + '-item section'), b.count, b.count === 0));
+                    grid.appendChild(exRow('block', String(b.id), b.name, b.count + ' Questions', b.count, b.count === 0));
                 });
             }
         }
