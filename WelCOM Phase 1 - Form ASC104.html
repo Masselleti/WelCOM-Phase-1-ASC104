@@ -1355,9 +1355,17 @@
      and dress the relocated bar. Touch/phone layouts keep the pinned bar. -->
 <style id="ma-unpin-bottom-bar-style">
 @media (hover: hover) and (pointer: fine) {
+    /* Desktop only: un-pin the Block Time / End Block bar. The script moves it
+       inside the scrolling .uw-main; as a flex column with margin-top:auto the
+       bar sits at the bottom of the scroll area when content is short and flows
+       after the content (scroll to reach it) once it overflows -- never pinned
+       over the viewport. Touch/phone layouts keep the pinned bar. */
     html:not(.ma-phone) .nbme-skin.uw-skin { grid-template-rows: 50px 1fr !important; }
-    html:not(.ma-phone) .uw-main > .uw-bottom-bar { margin-top: 24px; }
+    html:not(.ma-phone) .uw-main { display: flex !important; flex-direction: column !important; }
+    html:not(.ma-phone) .uw-main > .uw-bottom-bar { margin-top: auto !important; }
 }
+/* Keep Mark Question + Copy on one row when .uw-main becomes a flex column. */
+.ma-mark-copy { display: flex; align-items: center; }
 </style>
 </head>
 
@@ -4481,12 +4489,23 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     function wantUnpinned() {
         return mq.matches && !document.documentElement.classList.contains('ma-phone');
     }
+    function wrapMarkCopy(main) {
+        var mark = main.querySelector(':scope > .uw-mark-row');
+        if (!mark) return;
+        var copy = main.querySelector(':scope > .uw-copy-btn');
+        var w = document.createElement('div');
+        w.className = 'ma-mark-copy';
+        mark.parentNode.insertBefore(w, mark);
+        w.appendChild(mark);
+        if (copy) w.appendChild(copy);
+    }
     function place() {
         document.querySelectorAll('.nbme-skin.uw-skin').forEach(function (skin) {
             var bar = skin.querySelector('.uw-bottom-bar');
             if (!bar) return;
             var main = skin.querySelector('.uw-main');
             if (wantUnpinned() && main) {
+                if (main.querySelector(':scope > .uw-mark-row')) wrapMarkCopy(main);
                 if (bar.parentElement !== main || main.lastElementChild !== bar) main.appendChild(bar);
             } else if (bar.parentElement !== skin) {
                 skin.appendChild(bar);
