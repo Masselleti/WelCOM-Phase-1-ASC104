@@ -1347,6 +1347,18 @@
 .nbme-skin.uw-skin.nbme-reverse :is(.question-stem,.answer-option,.commentary-content) .hl-blue,
 .nbme-skin.uw-skin.nbme-reverse :is(.question-stem,.answer-option,.commentary-content) .hl-blue * { background-color: #cfe9ff !important; }
 </style>
+
+<!-- ma-unpin-bottom-bar (2026-07-11): on desktop (fine pointer, not the phone
+     layout) the Block Time / End Block bar flows at the end of the question
+     content instead of being pinned over the viewport. The companion script
+     re-parents it into .uw-main; these rules collapse the footer grid track
+     and dress the relocated bar. Touch/phone layouts keep the pinned bar. -->
+<style id="ma-unpin-bottom-bar-style">
+@media (hover: hover) and (pointer: fine) {
+    html:not(.ma-phone) .nbme-skin.uw-skin { grid-template-rows: 50px 1fr !important; }
+    html:not(.ma-phone) .uw-main > .uw-bottom-bar { margin-top: 24px; }
+}
+</style>
 </head>
 
 <body>
@@ -4462,5 +4474,32 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     ensureBtn();
 })();
 </script>
+
+<script id="ma-unpin-bottom-bar-js">
+(function () {
+    var mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    function wantUnpinned() {
+        return mq.matches && !document.documentElement.classList.contains('ma-phone');
+    }
+    function place() {
+        document.querySelectorAll('.nbme-skin.uw-skin').forEach(function (skin) {
+            var bar = skin.querySelector('.uw-bottom-bar');
+            if (!bar) return;
+            var main = skin.querySelector('.uw-main');
+            if (wantUnpinned() && main) {
+                if (bar.parentElement !== main || main.lastElementChild !== bar) main.appendChild(bar);
+            } else if (bar.parentElement !== skin) {
+                skin.appendChild(bar);
+            }
+        });
+    }
+    var mo = new MutationObserver(place);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    if (mq.addEventListener) mq.addEventListener('change', place);
+    window.addEventListener('resize', place);
+    place();
+})();
+</script>
+
 </body>
 </html>
