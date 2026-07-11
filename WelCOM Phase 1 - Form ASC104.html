@@ -4528,9 +4528,9 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
      Space - the NBME family's 2nd Space handler would instantly advance);
      tap 2 advances. Learning mode only; exam mode leaves the strip inert. -->
 <style id="ma-touch-reveal-css">
-#ma-touch-reveal-strip { flex: 1 1 auto; align-self: stretch; min-height: 34px; min-width: 44px;
-    -webkit-tap-highlight-color: transparent; border-radius: 8px; }
-#ma-touch-reveal-strip.is-pressed { background: rgba(100, 116, 139, 0.12); }
+.ma-touch-reveal-strip { flex: 1 1 auto; align-self: stretch; min-height: 34px; min-width: 44px;
+    -webkit-tap-highlight-color: transparent; border-radius: 8px; touch-action: manipulation; }
+.ma-touch-reveal-strip.is-pressed { background: rgba(100, 116, 139, 0.12); }
 /* the row's 12px bottom margin (stem spacing) skews the wrapper's flex centering
    by 6px - carry the spacing on the wrapper instead */
 .ma-mark-copy { margin-bottom: 12px; }
@@ -4560,6 +4560,10 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
         return false;
     }
     function goNext() {
+        /* prefer the edge-tap block's own nav hook: it arms ITS quiet window
+           (so the render's smooth scroll-to-top doesn't veto a fast follow-up
+           edge-tap) and plays the same slide-in animation */
+        if (typeof window.maTapNav === 'function') { window.maTapNav('next'); return; }
         var btns = document.querySelectorAll('.uw-header-nav .uw-nav-btn');
         for (var i = 0; i < btns.length; i++) {
             var b = btns[i];
@@ -4575,20 +4579,28 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
 
     /* momentum-scroll-stop taps: iOS suppresses only the CLICK for those taps,
        not the touch events (the FastClick phantom-tap class of bug), so track
-       scrolling ourselves like the edge-tap block does */
+       scrolling ourselves like the edge-tap block does. The quiet window keeps
+       the engine's own smooth scroll-to-top after an advance from vetoing a
+       quick follow-up tap (tap-tap skimming). */
     var lastScrollAt = 0;
-    document.addEventListener('scroll', function () { lastScrollAt = Date.now(); }, { capture: true, passive: true });
+    var scrollQuietUntil = 0;
+    document.addEventListener('scroll', function () {
+        if (Date.now() < scrollQuietUntil) return;
+        lastScrollAt = Date.now();
+    }, { capture: true, passive: true });
 
     var lastFire = 0;
     function act() {
         if (!document.body.classList.contains('in-nbme-question')) return;
         if (!isLearning()) return;
         if (modalOpen()) return;
+        if (window.visualViewport && window.visualViewport.scale > 1.05) return;  /* pinch-zoomed (fleet edge-tap convention) */
         var sel = window.getSelection();
         if (sel && String(sel).trim() !== '') return;   /* highlight flow in progress */
         var now = Date.now();
         if (now - lastFire < 350) return;               /* stray double-tap */
         lastFire = now;
+        scrollQuietUntil = now + 700;
         if (!isAnswered()) reveal();
         else goNext();
     }
@@ -4619,6 +4631,15 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
         if (e.cancelable) e.preventDefault();   /* swallow the compatibility click + iOS double-tap zoom */
         act();
     }
+    function onTouchMove(e) {
+        /* a drag that began on the strip is a scroll - drop the pressed tint */
+        if (!tstart) return;
+        var t = e.touches && e.touches[0];
+        if (!t) return;
+        if (Math.abs(t.clientX - tstart.x) + Math.abs(t.clientY - tstart.y) > 12) {
+            this.classList.remove('is-pressed');
+        }
+    }
     function onTouchCancel() { lastTouchAt = Date.now(); this.classList.remove('is-pressed'); tstart = null; }
     var mdown = null;
     function onMouseDown() {
@@ -4639,6 +4660,7 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     }
     function wire(strip) {
         strip.addEventListener('touchstart', onTouchStart, { passive: true });
+        strip.addEventListener('touchmove', onTouchMove, { passive: true });
         strip.addEventListener('touchend', onTouchEnd, { passive: false });
         strip.addEventListener('touchcancel', onTouchCancel, { passive: true });
         strip.addEventListener('mousedown', onMouseDown, true);
@@ -4652,30 +4674,37 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
            edge-tap next zone on the Mark/Copy row (every mode switch rebuilds
            the question card, so this self-corrects on re-render) */
         if (!isLearning()) return;
-        var mark = document.getElementById('uw-mark-row');
-        if (!mark || !mark.closest) return;
-        var main = mark.closest('.uw-main');
-        if (!main) return;
-        if (main.querySelector('#ma-touch-reveal-strip')) return;
-        /* reuse the desktop unpin feature's flex wrapper if it already wrapped
-           the row (mode flip on convertibles); otherwise create it with the SAME
-           class so that feature's CSS/logic stays valid either way */
-        var row = mark.parentElement.classList && mark.parentElement.classList.contains('ma-mark-copy')
-            ? mark.parentElement : null;
-        if (!row) {
-            row = document.createElement('div');
-            row.className = 'ma-mark-copy';
-            var copy = main.querySelector(':scope > .uw-copy-btn');
-            mark.parentNode.insertBefore(row, mark);
-            row.appendChild(mark);
-            if (copy) row.appendChild(copy);
+        /* iterate EVERY mark row, not getElementById: both engines keep dual
+           learning/exam containers with duplicate ids, and the FIRST match can
+           be a stale hidden card - which would leave the visible row bare */
+        var marks = document.querySelectorAll('.uw-mark-row');
+        for (var i = 0; i < marks.length; i++) {
+            var mark = marks[i];
+            if (!mark.closest) continue;
+            var main = mark.closest('.uw-main');
+            if (!main) continue;
+            if (main.querySelector('.ma-touch-reveal-strip')) continue;
+            /* reuse the desktop unpin feature's flex wrapper if it already wrapped
+               the row (mode flip on convertibles); otherwise create it with the SAME
+               class so that feature's CSS/logic stays valid either way */
+            var row = mark.parentElement && mark.parentElement.classList && mark.parentElement.classList.contains('ma-mark-copy')
+                ? mark.parentElement : null;
+            if (!row) {
+                row = document.createElement('div');
+                row.className = 'ma-mark-copy';
+                var copy = main.querySelector(':scope > .uw-copy-btn');
+                mark.parentNode.insertBefore(row, mark);
+                row.appendChild(mark);
+                if (copy) row.appendChild(copy);
+            }
+            var strip = document.createElement('div');
+            strip.className = 'ma-touch-reveal-strip';
+            strip.id = 'ma-touch-reveal-strip';
+            strip.setAttribute('role', 'button');
+            strip.setAttribute('aria-label', 'Reveal answer');
+            row.appendChild(strip);
+            wire(strip);
         }
-        var strip = document.createElement('div');
-        strip.id = 'ma-touch-reveal-strip';
-        strip.setAttribute('role', 'button');
-        strip.setAttribute('aria-label', 'Reveal answer');
-        row.appendChild(strip);
-        wire(strip);
     }
 
     var mo = new MutationObserver(ensure);   /* runs synchronously on rebuild batches */
