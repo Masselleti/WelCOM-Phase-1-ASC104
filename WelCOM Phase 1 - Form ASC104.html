@@ -4098,5 +4098,364 @@ html.ma-phone body.ma-reverse-navy #ma-nav-fab {
     sync();
 })();
 </script>
+<style id="ma-search-css">
+/* the panel floats over the EXAM surface, which is hard-coded light unless
+   Reverse is on (html.ma-reverse-navy) — so it uses explicit light tokens,
+   NOT the :root vars, which track the dashboard's html.dark instead */
+#ma-search-panel { position: fixed; top: 64px; right: 14px; z-index: 3000; width: 340px; max-width: calc(100vw - 28px); display: flex; flex-direction: column; overflow: hidden; background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 23, 42, .28); font-family: var(--font, inherit); }
+#ma-search-panel[hidden] { display: none; }
+.ma-search-head { display: flex; align-items: center; gap: 6px; padding: 10px; border-bottom: 1px solid #e2e8f0; }
+#ma-search-input { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; color: #0f172a; font-family: inherit; font-size: 14px; outline: none; -webkit-appearance: none; appearance: none; }
+#ma-search-input:focus { border-color: #21AED9; }
+#ma-search-close { flex: 0 0 auto; border: none; background: transparent; color: #64748b; font-size: 15px; line-height: 1; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+#ma-search-close:hover { background: #f1f5f9; color: #0f172a; }
+#ma-search-count { padding: 5px 13px 0; font-size: 11px; color: #64748b; }
+#ma-search-results { overflow-y: auto; max-height: 52vh; padding: 5px; overscroll-behavior: contain; }
+.ma-search-row { display: block; width: 100%; text-align: left; background: transparent; border: none; border-radius: 8px; padding: 8px 10px; cursor: pointer; font-family: inherit; color: inherit; }
+.ma-search-row:hover { background: rgba(33, 174, 217, .10); }
+.ma-search-row.is-active { background: rgba(33, 174, 217, .12); box-shadow: inset 3px 0 0 #21AED9; }
+.ma-search-qnum { display: block; margin-bottom: 2px; font-size: 12px; font-weight: 700; color: #1690b8; }
+.ma-search-snippet { display: block; font-size: 12.5px; line-height: 1.5; color: #334155; }
+.ma-search-snippet mark { background: #fcd34d; color: #111; border-radius: 3px; padding: 0 1px; }
+.ma-search-hint { padding: 10px 13px 14px; font-size: 12px; color: var(--muted, #64748b); }
+/* rail badge: amber right-edge bar + amber number — no background tint, so it
+   never fights the is-current / is-correct row backgrounds in either theme */
+#uw-sidebar .uw-q-item.ma-search-hit { box-shadow: inset -3px 0 0 #f59e0b; }
+#uw-sidebar .uw-q-item.ma-search-hit .uw-q-num { color: #b45309; font-weight: 700; }
+html.ma-reverse-navy #uw-sidebar .uw-q-item.ma-search-hit .uw-q-num { color: #fbbf24; }
+/* in-question match highlight: CSS Custom Highlight API only — zero DOM
+   mutation, so matches can never leak into the ma_hl_* innerHTML snapshots
+   the user-highlighter persists */
+::highlight(ma-search) { background-color: #f6a623; color: #111; }
+html.ma-reverse-navy ::highlight(ma-search) { background-color: #f6a623; color: #0f172a; }
+html.ma-reverse-navy #ma-search-panel { background: #1e293b; border-color: #334155; color: #e2e8f0; box-shadow: 0 12px 32px rgba(0, 0, 0, .55); }
+html.ma-reverse-navy .ma-search-head { border-bottom-color: #334155; }
+html.ma-reverse-navy #ma-search-input { background: #0f172a; border-color: #334155; color: #e2e8f0; }
+html.ma-reverse-navy #ma-search-close:hover { background: #334155; color: #e2e8f0; }
+html.ma-reverse-navy .ma-search-snippet { color: #cbd5e1; }
+html.ma-reverse-navy .ma-search-qnum { color: #5ec2e3; }
+html.ma-reverse-navy .ma-search-hint, html.ma-reverse-navy #ma-search-count { color: #94a3b8; }
+html.ma-reverse-navy .ma-search-row:hover, html.ma-reverse-navy .ma-search-row.is-active { background: rgba(148, 163, 184, .14); }
+html.ma-phone #ma-search-panel { top: 52px; left: 8px; right: 8px; width: auto; }
+html.ma-phone #ma-search-results { max-height: 44vh; }
+</style>
+<script id="ma-search-js">
+(function () {
+    'use strict';
+    var panel = null, input = null, resultsEl = null, countEl = null;
+    var panelOpen = false;
+    var index = null;       /* { sig, items: [{pos, id, text, lower}] } */
+    var activeTerms = [];   /* lowercased words of the active query */
+    var hits = [];          /* matching index items, session order */
+    var hitSet = new Set(); /* matching session positions */
+    var canHl = (typeof window.Highlight === 'function') && window.CSS && CSS.highlights;
+
+    /* This engine keeps the learning AND exam containers in the DOM at the
+       same time (duplicate #uw-sidebar / .question-stem / .uw-header ids),
+       hiding whichever mode is inactive. getElementById / querySelector
+       return the FIRST match — often the hidden one — so every read of a
+       per-question element must pick the VISIBLE duplicate instead. */
+    function visibleOne(sel) {
+        var list = document.querySelectorAll(sel);
+        for (var i = 0; i < list.length; i++) { if (list[i].offsetParent !== null) return list[i]; }
+        return list[0] || null;
+    }
+
+    function toText(html) {
+        /* tags are regex-stripped BEFORE touching the DOM so <img> in stems
+           never triggers asset fetches; the textarea only decodes entities */
+        var s = String(html || '').replace(/<[^>]+>/g, ' ');
+        var ta = toText._ta || (toText._ta = document.createElement('textarea'));
+        ta.innerHTML = s;
+        return ta.value.replace(/\s+/g, ' ').trim();
+    }
+    function sessionSig() {
+        if (!currentQuestions || !currentQuestions.length) return '';
+        var f = currentQuestions[0], l = currentQuestions[currentQuestions.length - 1];
+        return currentQuestions.length + ':' + f.id + ':' + l.id + ':' + f.dbPath;
+    }
+    function buildIndex() {
+        var sig = sessionSig();
+        if (!sig) return { sig: '', items: [] };
+        if (index && index.sig === sig) return index;
+        var groups = {};
+        currentQuestions.forEach(function (q, i) {
+            (groups[q.dbPath] = groups[q.dbPath] || []).push({ id: parseInt(q.id, 10), pos: i });
+        });
+        var items = [];
+        Object.keys(groups).forEach(function (path) {
+            var db = databases[path] || currentDatabase;
+            if (!db) return;
+            var refs = groups[path].filter(function (r) { return isFinite(r.id); });
+            if (!refs.length) return;
+            var byId = {};
+            try {
+                var res = db.exec('SELECT id, question FROM Questions WHERE id IN (' + refs.map(function (r) { return r.id; }).join(',') + ')');
+                if (res.length) res[0].values.forEach(function (row) { byId[row[0]] = String(row[1] || ''); });
+            } catch (e) { return; }
+            refs.forEach(function (r) {
+                var t = toText(byId[r.id]);
+                if (t) items.push({ pos: r.pos, id: r.id, text: t, lower: t.toLowerCase() });
+            });
+        });
+        items.sort(function (a, b) { return a.pos - b.pos; });
+        index = { sig: sig, items: items };
+        return index;
+    }
+    function snippetFor(it) {
+        var at = -1;
+        for (var i = 0; i < activeTerms.length && at === -1; i++) at = it.lower.indexOf(activeTerms[i]);
+        if (at < 0) at = 0;
+        var start = Math.max(0, at - 45);
+        var end = Math.min(it.text.length, at + 90);
+        return (start > 0 ? '…' : '') + it.text.slice(start, end) + (end < it.text.length ? '…' : '');
+    }
+    function appendMarked(el, s) {
+        var lower = s.toLowerCase(), n = s.length, hot = new Uint8Array(n), i, j, k;
+        activeTerms.forEach(function (t) {
+            var at = lower.indexOf(t);
+            while (at !== -1) { for (k = at; k < at + t.length; k++) hot[k] = 1; at = lower.indexOf(t, at + 1); }
+        });
+        i = 0;
+        while (i < n) {
+            j = i;
+            while (j < n && hot[j] === hot[i]) j++;
+            var chunk = s.slice(i, j);
+            if (hot[i]) { var m = document.createElement('mark'); m.textContent = chunk; el.appendChild(m); }
+            else el.appendChild(document.createTextNode(chunk));
+            i = j;
+        }
+    }
+    function renderResults() {
+        if (!panel) return;
+        resultsEl.textContent = '';
+        if (!activeTerms.length) {
+            countEl.textContent = '';
+            var hint = document.createElement('div');
+            hint.className = 'ma-search-hint';
+            hint.textContent = 'Type at least 2 letters to search every question in this session.';
+            resultsEl.appendChild(hint);
+            return;
+        }
+        var total = (index && index.items.length) || 0;
+        countEl.textContent = hits.length + ' of ' + total + ' questions match';
+        if (!hits.length) {
+            var none = document.createElement('div');
+            none.className = 'ma-search-hint';
+            none.textContent = 'No question contains "' + activeTerms.join(' ') + '".';
+            resultsEl.appendChild(none);
+            return;
+        }
+        hits.forEach(function (h) {
+            var row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'ma-search-row';
+            row.setAttribute('data-pos', h.pos);
+            var qn = document.createElement('span');
+            qn.className = 'ma-search-qnum';
+            qn.textContent = 'Question ' + (h.pos + 1);
+            var sn = document.createElement('span');
+            sn.className = 'ma-search-snippet';
+            appendMarked(sn, snippetFor(h));
+            row.appendChild(qn);
+            row.appendChild(sn);
+            row.addEventListener('click', function () { jump(h.pos); });
+            resultsEl.appendChild(row);
+        });
+        syncActiveRow();
+    }
+    function syncActiveRow() {
+        if (!panel) return;
+        var cur = (typeof currentQuestionIndex === 'number') ? currentQuestionIndex : -1;
+        var rows = resultsEl.querySelectorAll('.ma-search-row');
+        for (var i = 0; i < rows.length; i++) {
+            var want = parseInt(rows[i].getAttribute('data-pos'), 10) === cur;
+            if (rows[i].classList.contains('is-active') !== want) rows[i].classList.toggle('is-active', want);
+        }
+    }
+    function applyStemHighlight() {
+        if (!canHl) return;
+        if (!activeTerms.length) { CSS.highlights.delete('ma-search'); return; }
+        var stem = visibleOne('.question-stem');
+        if (!stem) { CSS.highlights.delete('ma-search'); return; }
+        var hl = new Highlight(), any = false;
+        var walker = document.createTreeWalker(stem, NodeFilter.SHOW_TEXT);
+        var node;
+        while ((node = walker.nextNode())) {
+            var lower = node.nodeValue.toLowerCase();
+            for (var t = 0; t < activeTerms.length; t++) {
+                var term = activeTerms[t];
+                var at = lower.indexOf(term);
+                while (at !== -1) {
+                    var r = document.createRange();
+                    r.setStart(node, at);
+                    r.setEnd(node, at + term.length);
+                    hl.add(r);
+                    any = true;
+                    at = lower.indexOf(term, at + 1);
+                }
+            }
+        }
+        if (any) CSS.highlights.set('ma-search', hl);
+        else CSS.highlights.delete('ma-search');
+    }
+    function syncBtns() {
+        var on = panelOpen || activeTerms.length > 0;
+        var btns = document.querySelectorAll('.ma-search-btn');
+        for (var i = 0; i < btns.length; i++) {
+            if (btns[i].classList.contains('is-active') !== on) btns[i].classList.toggle('is-active', on);
+        }
+    }
+    function applyDecorations() {
+        /* clear stale badges from every sidebar (the hidden mode's rail keeps
+           its own rows), then badge only the visible one by session position */
+        var sidebars = document.querySelectorAll('#uw-sidebar');
+        for (var s = 0; s < sidebars.length; s++) {
+            var visible = sidebars[s].offsetParent !== null;
+            var rows = sidebars[s].querySelectorAll('.uw-q-item');
+            for (var i = 0; i < rows.length; i++) {
+                var want = visible && hitSet.has(i);
+                if (rows[i].classList.contains('ma-search-hit') !== want) rows[i].classList.toggle('ma-search-hit', want);
+            }
+        }
+        applyStemHighlight();
+        syncActiveRow();
+        syncBtns();
+    }
+    function runSearch() {
+        var raw = (input && input.value || '').trim();
+        activeTerms = raw.toLowerCase().split(/\s+/).filter(function (t) { return t.length >= 2; });
+        hits = [];
+        hitSet = new Set();
+        if (activeTerms.length) {
+            var ix = buildIndex();
+            hits = ix.items.filter(function (it) {
+                return activeTerms.every(function (t) { return it.lower.indexOf(t) !== -1; });
+            });
+            hitSet = new Set(hits.map(function (h) { return h.pos; }));
+        }
+        renderResults();
+        applyDecorations();
+    }
+    function jump(pos) {
+        try { uwJumpTo(pos); } catch (e) { }
+        /* on the phone the panel covers the question: hide it but keep the
+           query active so the stem highlight stays and the 🔍 stays lit */
+        if (document.documentElement.classList.contains('ma-phone')) { panelOpen = false; panel.hidden = true; syncBtns(); }
+        else syncActiveRow();
+    }
+    function cycleNext() {
+        if (!hits.length) return;
+        var cur = (typeof currentQuestionIndex === 'number') ? currentQuestionIndex : -1;
+        var next = null;
+        for (var i = 0; i < hits.length; i++) { if (hits[i].pos > cur) { next = hits[i]; break; } }
+        jump((next || hits[0]).pos);
+    }
+    function fullClear() {
+        activeTerms = [];
+        hits = [];
+        hitSet = new Set();
+        if (input) input.value = '';
+        if (canHl) CSS.highlights.delete('ma-search');
+        var marked = document.querySelectorAll('#uw-sidebar .uw-q-item.ma-search-hit');
+        for (var i = 0; i < marked.length; i++) marked[i].classList.remove('ma-search-hit');
+        if (panel) { renderResults(); panel.hidden = true; }
+        panelOpen = false;
+        syncBtns();
+    }
+    function ensurePanel() {
+        if (panel) return;
+        panel = document.createElement('div');
+        panel.id = 'ma-search-panel';
+        panel.hidden = true;
+        var head = document.createElement('div');
+        head.className = 'ma-search-head';
+        input = document.createElement('input');
+        input.id = 'ma-search-input';
+        input.type = 'search';
+        input.placeholder = 'Search this session’s questions…';
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('autocorrect', 'off');
+        input.setAttribute('autocapitalize', 'off');
+        input.setAttribute('spellcheck', 'false');
+        input.setAttribute('enterkeyhint', 'search');
+        input.setAttribute('aria-label', 'Search the questions in this session');
+        var close = document.createElement('button');
+        close.id = 'ma-search-close';
+        close.type = 'button';
+        close.title = 'Close search';
+        close.textContent = '✕';
+        head.appendChild(input);
+        head.appendChild(close);
+        countEl = document.createElement('div');
+        countEl.id = 'ma-search-count';
+        resultsEl = document.createElement('div');
+        resultsEl.id = 'ma-search-results';
+        panel.appendChild(head);
+        panel.appendChild(countEl);
+        panel.appendChild(resultsEl);
+        document.body.appendChild(panel);
+        /* keep gestures inside the panel away from the engine's document-level
+           handlers (phone edge-tap nav, desktop reveal-click, palette hiding) */
+        ['touchstart', 'touchend', 'mousedown', 'click'].forEach(function (t) {
+            panel.addEventListener(t, function (e) { e.stopPropagation(); });
+        });
+        var deb = null;
+        input.addEventListener('input', function () { clearTimeout(deb); deb = setTimeout(runSearch, 150); });
+        input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); cycleNext(); } });
+        close.addEventListener('click', fullClear);
+        renderResults();
+    }
+    function openPanel() {
+        ensurePanel();
+        panelOpen = true;
+        panel.hidden = false;
+        runSearch(); /* session may have changed since the query was typed */
+        try { input.focus(); input.select(); } catch (e) { }
+        syncBtns();
+    }
+    window.maSearchToggle = function () {
+        if (panelOpen) fullClear();
+        else openPanel();
+    };
+    function ensureBtn() {
+        var bars = document.querySelectorAll('.uw-header-tools');
+        for (var i = 0; i < bars.length; i++) {
+            if (bars[i].querySelector('.ma-search-btn')) continue;
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'uw-tool ma-search-btn';
+            b.title = 'Search the questions in this session';
+            b.innerHTML = '<span class="uw-tool-icon">🔍</span><span>Search</span>';
+            b.addEventListener('click', function (e) { e.stopPropagation(); window.maSearchToggle(); });
+            bars[i].appendChild(b);
+        }
+        syncBtns();
+    }
+    /* Escape closes search before the engine's bubble-phase Escape handlers
+       (zen mode, lab values) can also fire */
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && panelOpen) { e.preventDefault(); e.stopPropagation(); fullClear(); }
+    }, true);
+    /* Everything runs synchronously in the observer callback: timers and
+       requestAnimationFrame are throttled or never fire in hidden/background
+       tabs (same trap ma-tools-reveal-js documents). MutationObserver
+       batching coalesces same-task mutation bursts, every DOM write below is
+       change-only, and CSS.highlights writes are not DOM mutations — so the
+       self-triggered second pass terminates immediately. */
+    var mo = new MutationObserver(function () {
+        ensureBtn();
+        if (!panelOpen && !activeTerms.length) return;
+        /* body.in-nbme-question is the engine's own "a question is on screen"
+           flag — absent on the dashboard/results even though the hidden
+           containers keep their .uw-header in the DOM. When it clears, the
+           session is over, so tear the search down. */
+        if (!document.body.classList.contains('in-nbme-question')) { fullClear(); return; }
+        applyDecorations();
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    ensureBtn();
+})();
+</script>
 </body>
 </html>
