@@ -3873,7 +3873,7 @@ body.in-nbme-question:has(.nbme-skin.uw-skin.nbme-reverse) {
      container padding), and <=768px (56/70) widths. The phone off-canvas
      drawer keeps 140px - its html.ma-phone selectors outrank these. -->
 <style id="ma-narrow-rail">
-.uw-sidebar { min-width: 64px; max-width: 88px; }
+.uw-sidebar { width: 88px; min-width: 64px; max-width: 88px; } /* pinned width: marking a question adds a flag to its rail row, and a fixed rail width keeps that from widening the sidebar. 88 = the existing max (fits a flagged 4-digit UWorld number); touch keeps its 80px !important, <=768 stays capped at 56. */
 @media (hover: none) and (pointer: coarse) {
     .nbme-skin.uw-skin { padding-left: 80px !important; }
     .nbme-skin.uw-skin .uw-sidebar { width: 80px !important; }
