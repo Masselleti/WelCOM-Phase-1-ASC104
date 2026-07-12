@@ -3272,6 +3272,17 @@
             document.addEventListener('touchstart', (e) => { if (!hlPalette.contains(e.target)) { maDragSelecting = true; hlPalette.style.display = 'none'; } }, {passive:true});
             hlPalette.addEventListener('mousedown', (e) => { e.preventDefault(); });
             hlPalette.addEventListener('touchstart', (e) => { e.preventDefault(); }, {passive:false});
+            // Touch: the touchstart preventDefault above suppresses the synthetic click on
+            // iOS, so a color button's inline onclick never fires and the highlight is never
+            // applied (mobile "tapping a highlight color does nothing" bug). Fire the tapped
+            // button's action directly on touchend, and preventDefault so the compatibility
+            // click can't double-apply on Chromium/Android.
+            hlPalette.addEventListener('touchend', (e) => {
+                const btn = e.target.closest('[onclick]');
+                if (!btn || !hlPalette.contains(btn)) return;
+                e.preventDefault();
+                btn.click();
+            }, {passive:false});
         })();
 
         // Delegated click handler for hyperlinks in question/explanation areas (ported from UWorld).
