@@ -4107,6 +4107,26 @@ html.ma-phone body.ma-reverse-navy #ma-nav-fab {
 .lv-overlay.lv-dark .lv-panel { background: #1e293b; }
 .lv-overlay.lv-dark .lv-table thead th { background: #1e293b; border-bottom-color: #334155; }
 .lv-overlay.lv-dark .lv-table tbody td { border-bottom-color: #334155; }
+/* Reverse: the native "Mark Question" checkbox renders as a stark white
+   square against the navy canvas. Repaint it to the navy palette — a dark
+   card-colored box (#1e293b) with a slate border (#475569); when marked it
+   fills with the same blue used for the "answered" rail bullet (#58a4e8) and
+   shows a white check. Custom appearance is scoped to reverse only, so the
+   light exam view keeps its native checkbox untouched. */
+.nbme-skin.uw-skin.nbme-reverse .uw-mark-row input[type="checkbox"] {
+    -webkit-appearance: none; appearance: none;
+    box-sizing: border-box; flex: 0 0 auto; position: relative;
+    width: 14px; height: 14px; margin: 0;
+    border: 1px solid #475569; border-radius: 3px;
+    background: #1e293b; cursor: pointer;
+}
+.nbme-skin.uw-skin.nbme-reverse .uw-mark-row input[type="checkbox"]:hover { border-color: #64748b; }
+.nbme-skin.uw-skin.nbme-reverse .uw-mark-row input[type="checkbox"]:checked { background: #58a4e8; border-color: #58a4e8; }
+.nbme-skin.uw-skin.nbme-reverse .uw-mark-row input[type="checkbox"]:checked::after {
+    content: ""; position: absolute; left: 4px; top: 1px;
+    width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
 </style>
 <script id="ma-reverse-navy-js">
 (function () {
