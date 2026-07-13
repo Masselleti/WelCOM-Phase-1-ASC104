@@ -4745,5 +4745,378 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
 })();
 </script>
 
+<script id="ma-sync-github">
+/* === MA cross-device sync v1 (GitHub-backed) ===
+   Syncs this form's persistent study state (highlighter snapshots
+   "ma_hl_<db>_*" and question marks "MA_FLAG|||<db>|||*") to a private GitHub
+   repo via the contents API, so highlights made on one device appear on the
+   others. One JSON doc per form: sync/<FORM_DB_PATH>.json in the repo
+   (default Masselleti/qbank-sync; override via native key ma_sync_repo).
+   Auth = a fine-grained PAT (Contents R/W on only that repo) pasted by the
+   user into the Sync panel, kept in this browser's NATIVE localStorage (key
+   ma_sync_token) - all forms on the same origin share the one paste.
+   Merge = per-key last-write-wins with tombstones for deletions; local write
+   times live in ma_sync_meta_<db>. window.localStorage here is the hybrid
+   persistence shim, so native storage is reached through a hidden same-origin
+   iframe, and the shim is wrapped once more to observe writes (debounced push
+   4s). Pulls: on load, tab re-focus >60s, reconnect, and every 5 min. Debug
+   override: ma_sync_api = API base URL (native key). Must be inserted before
+   the LAST closing body tag (the calculator template holds a decoy). No-ops
+   safely if FORM_DB_PATH / fetch / storage are unavailable (private mode). */
+(function () {
+  'use strict';
+  if (window.__maSyncLoaded) return; window.__maSyncLoaded = true;
+  var DB = (typeof FORM_DB_PATH !== 'undefined' && FORM_DB_PATH) ? String(FORM_DB_PATH) : null;
+  if (!DB || typeof fetch !== 'function' || typeof TextEncoder === 'undefined') return;
+
+  /* --- native (un-shimmed) localStorage via a same-origin iframe --- */
+  var real = null;
+  try {
+    var fr = document.createElement('iframe');
+    fr.setAttribute('aria-hidden', 'true'); fr.tabIndex = -1;
+    fr.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden;';
+    document.body.appendChild(fr);
+    window.__maSyncFrame = fr;
+    real = fr.contentWindow.localStorage;
+    real.setItem('ma_sync_probe', '1'); real.removeItem('ma_sync_probe');
+  } catch (e) { real = null; }
+  if (!real) return;
+
+  var HLP = 'ma_hl_' + DB + '_', FLP = 'MA_FLAG|||' + DB + '|||';
+  function ours(k) { return typeof k === 'string' && (k.indexOf(HLP) === 0 || k.indexOf(FLP) === 0); }
+
+  var META_KEY = 'ma_sync_meta_' + DB;
+  var meta = { t: {}, gone: {}, sha: null, last: 0, dirty: false };
+  try {
+    var m0 = JSON.parse(real.getItem(META_KEY) || 'null');
+    if (m0 && typeof m0 === 'object') { meta.t = m0.t || {}; meta.gone = m0.gone || {}; meta.sha = m0.sha || null; meta.last = m0.last || 0; meta.dirty = !!m0.dirty; }
+  } catch (e) {}
+  function saveMeta() { try { real.setItem(META_KEY, JSON.stringify(meta)); } catch (e) {} }
+
+  function cfg(k, d) { try { var v = real.getItem(k); return (v === null || v === '') ? d : v; } catch (e) { return d; } }
+  function token() { return (cfg('ma_sync_token', '') || '').trim(); }
+  function apiBase() { return cfg('ma_sync_api', 'https://api.github.com').replace(/\/+$/, ''); }
+  function repoPath() { return cfg('ma_sync_repo', 'Masselleti/qbank-sync'); }
+  function fileURL() {
+    var r = repoPath().split('/');
+    return apiBase() + '/repos/' + encodeURIComponent(r[0] || '') + '/' + encodeURIComponent(r[1] || '') +
+      '/contents/sync/' + encodeURIComponent(DB + '.json');
+  }
+
+  /* --- wrap the (already shimmed) localStorage to observe writes --- */
+  var target = window.localStorage;
+  function touched(k, isGone) {
+    var now = Date.now();
+    if (isGone) { meta.gone[k] = now; delete meta.t[k]; }
+    else { meta.t[k] = now; delete meta.gone[k]; }
+    meta.dirty = true; saveMeta(); schedulePush(); setDot();
+  }
+  var wrapped = {
+    getItem: function (k) { return target.getItem(k); },
+    setItem: function (k, v) {
+      var watch = ours(k), old = null;
+      if (watch) { try { old = real.getItem(k); } catch (e) {} }
+      target.setItem(k, v);
+      if (watch && old !== String(v)) touched(k, false);
+    },
+    removeItem: function (k) {
+      var watch = ours(k), had = false;
+      if (watch) { try { had = real.getItem(k) !== null; } catch (e) {} }
+      target.removeItem(k);
+      if (watch && had) touched(k, true);
+    },
+    clear: function () { target.clear(); },
+    key: function (i) { return target.key(i); },
+    get length() { return target.length; }
+  };
+  try { Object.defineProperty(window, 'localStorage', { configurable: true, get: function () { return wrapped; } }); } catch (e) {}
+
+  /* --- base64 (UTF-8 safe; GitHub newline-wraps content) --- */
+  function b64e(s) {
+    var b = new TextEncoder().encode(s), out = '', CH = 32768;
+    for (var i = 0; i < b.length; i += CH) out += String.fromCharCode.apply(null, b.subarray(i, i + CH));
+    return btoa(out);
+  }
+  function b64d(s) {
+    var bin = atob(String(s).replace(/\s+/g, '')), b = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(b);
+  }
+
+  function gh(method, body, keepalive) {
+    var opt = {
+      method: method,
+      headers: { 'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json' },
+      cache: 'no-store'
+    };
+    if (body) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+    if (keepalive) opt.keepalive = true;
+    return fetch(fileURL(), opt);
+  }
+
+  /* --- merge --- */
+  function applyRemote(doc) {
+    var changed = 0, k, keys = (doc && doc.keys) || {}, gone = (doc && doc.gone) || {};
+    for (k in keys) {
+      if (!ours(k) || !keys[k]) continue;
+      var rt = keys[k].t || 0, lt = meta.t[k] || meta.gone[k] || 0;
+      if (rt > lt) {
+        try { if (real.getItem(k) !== keys[k].d) changed++; real.setItem(k, keys[k].d); } catch (e) { continue; }
+        meta.t[k] = rt; delete meta.gone[k];
+      }
+    }
+    for (k in gone) {
+      if (!ours(k)) continue;
+      var gt = gone[k] || 0, l2 = meta.t[k] || meta.gone[k] || 0;
+      if (gt > l2) {
+        try { if (real.getItem(k) !== null) changed++; real.removeItem(k); } catch (e) {}
+        meta.gone[k] = gt; delete meta.t[k];
+      }
+    }
+    if (changed) {
+      try { if (document.body.classList.contains('in-nbme-question') && typeof maLoadHighlights === 'function') maLoadHighlights(); } catch (e) {}
+    }
+    return changed;
+  }
+
+  function buildDoc(doc) {
+    doc = (doc && typeof doc === 'object') ? doc : {};
+    doc.v = 1; doc.keys = doc.keys || {}; doc.gone = doc.gone || {};
+    var i, k;
+    for (i = 0; i < real.length; i++) {
+      k = real.key(i);
+      if (!ours(k)) continue;
+      if (!meta.t[k]) meta.t[k] = Date.now();
+      var e = doc.keys[k];
+      if (!e || meta.t[k] >= (e.t || 0)) doc.keys[k] = { d: real.getItem(k), t: meta.t[k] };
+      if (doc.gone[k] && meta.t[k] >= doc.gone[k]) delete doc.gone[k];
+    }
+    for (k in meta.gone) {
+      if (!doc.gone[k] || meta.gone[k] > doc.gone[k]) doc.gone[k] = meta.gone[k];
+      if (doc.keys[k] && doc.gone[k] >= (doc.keys[k].t || 0)) delete doc.keys[k];
+    }
+    var cut = Date.now() - 90 * 864e5;
+    for (k in doc.gone) { if (doc.gone[k] < cut) { delete doc.gone[k]; delete meta.gone[k]; } }
+    saveMeta();
+    return doc;
+  }
+
+  /* --- push / pull --- */
+  var pushTimer = null, pushing = false, pulling = false;
+  function schedulePush() {
+    if (!token()) return;
+    if (pushTimer) clearTimeout(pushTimer);
+    pushTimer = setTimeout(function () { doPush(false); }, 4000);
+  }
+  function doPush(isRetry) {
+    if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
+    if (!token()) { setStatus('off'); return Promise.resolve('off'); }
+    if (pushing) { schedulePush(); return Promise.resolve('busy'); }
+    pushing = true; setStatus('sync');
+    return gh('GET').then(function (r) {
+      if (r.status === 401 || r.status === 403) throw { auth: true };
+      if (r.status === 404) return null;
+      if (!r.ok) throw { code: r.status };
+      return r.json();
+    }).then(function (j) {
+      var remoteRaw = null, doc = {};
+      if (j) {
+        meta.sha = j.sha || meta.sha;
+        try { remoteRaw = b64d(j.content || ''); doc = JSON.parse(remoteRaw) || {}; } catch (e) { doc = {}; }
+        applyRemote(doc);
+      } else { meta.sha = null; }
+      var out = JSON.stringify(buildDoc(doc));
+      if (remoteRaw !== null && out === remoteRaw) {
+        meta.dirty = false; meta.last = Date.now(); saveMeta(); pushing = false; setStatus('ok'); return 'clean';
+      }
+      var put = { message: 'sync: ' + DB, content: b64e(out) };
+      if (meta.sha) put.sha = meta.sha;
+      return gh('PUT', put).then(function (pr) {
+        if (pr.status === 401 || pr.status === 403) throw { auth: true };
+        if (pr.status === 409 || pr.status === 422) {
+          pushing = false;
+          if (!isRetry) { meta.sha = null; return doPush(true); }
+          setStatus('err'); return 'conflict';
+        }
+        if (!pr.ok) throw { code: pr.status };
+        return pr.json().then(function (pj) {
+          meta.sha = (pj && pj.content && pj.content.sha) || null;
+          meta.dirty = false; meta.last = Date.now(); saveMeta();
+          pushing = false; setStatus('ok'); return 'ok';
+        });
+      });
+    }).catch(function (e) {
+      pushing = false;
+      if (e && e.auth) setStatus('auth'); else setStatus(navigator.onLine === false ? 'net' : 'err');
+      return 'fail';
+    });
+  }
+  function pull() {
+    if (!token()) { setStatus('off'); return Promise.resolve('off'); }
+    if (pulling) return Promise.resolve('busy');
+    pulling = true; setStatus('sync');
+    return gh('GET').then(function (r) {
+      if (r.status === 401 || r.status === 403) { pulling = false; setStatus('auth'); return 'auth'; }
+      if (r.status === 404) {
+        pulling = false; meta.last = Date.now(); saveMeta();
+        if (meta.dirty) { setStatus('sync'); schedulePush(); } else setStatus('ok');
+        return 'empty';
+      }
+      if (!r.ok) { pulling = false; setStatus('err'); return 'err'; }
+      return r.json().then(function (j) {
+        meta.sha = j.sha || null;
+        var doc = {};
+        try { doc = JSON.parse(b64d(j.content || '')) || {}; } catch (e) { doc = {}; }
+        applyRemote(doc);
+        meta.last = Date.now(); saveMeta(); pulling = false;
+        if (meta.dirty) { setStatus('sync'); schedulePush(); } else setStatus('ok');
+        return 'ok';
+      });
+    }).catch(function () { pulling = false; setStatus(navigator.onLine === false ? 'net' : 'err'); return 'fail'; });
+  }
+  function flush() {
+    if (!meta.dirty || !token() || pushing) return;
+    try {
+      var put = { message: 'sync: ' + DB, content: b64e(JSON.stringify(buildDoc({}))) };
+      if (meta.sha) put.sha = meta.sha;
+      gh('PUT', put, true).then(function (pr) {
+        if (pr && pr.ok) return pr.json().then(function (pj) {
+          meta.sha = (pj && pj.content && pj.content.sha) || meta.sha;
+          meta.dirty = false; meta.last = Date.now(); saveMeta(); setStatus('ok');
+        });
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') flush();
+    else if (token() && !meta.dirty && Date.now() - meta.last > 60000) pull();
+  });
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('online', function () { if (meta.dirty) schedulePush(); else if (token()) pull(); });
+  setInterval(function () {
+    if (document.visibilityState !== 'visible' || !token()) return;
+    if (meta.dirty) { if (!pushTimer && !pushing) schedulePush(); }
+    else if (Date.now() - meta.last > 300000) pull();
+  }, 60000);
+
+  /* --- UI --- */
+  var STATES = {
+    off:  ['#94a3b8', 'Not connected on this device'],
+    ok:   ['#22c55e', 'Synced'],
+    sync: ['#38bdf8', 'Syncing…'],
+    auth: ['#f59e0b', 'Token rejected — paste a new one'],
+    err:  ['#ef4444', 'Sync error — will retry'],
+    net:  ['#ef4444', 'Offline — will retry when back online']
+  };
+  var state = 'off';
+  function fmtTime(ms) { try { return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch (e) { return ''; } }
+  function setDot() {
+    var d = document.getElementById('ma-sync-dot');
+    if (d) d.style.background = STATES[state][0];
+  }
+  function statusLine() {
+    var txt = STATES[state][1];
+    if (state === 'ok' && meta.last) txt += ' ' + fmtTime(meta.last);
+    if (meta.dirty && state !== 'sync' && state !== 'off') txt += ' · unsaved changes';
+    return txt;
+  }
+  function renderPanelStatus() {
+    var el = document.getElementById('ma-sync-status');
+    if (el) el.textContent = statusLine();
+    var sw = document.getElementById('ma-sync-status-dot');
+    if (sw) sw.style.background = STATES[state][0];
+  }
+  function setStatus(s) { state = STATES[s] ? s : 'err'; setDot(); renderPanelStatus(); }
+
+  function openPanel() {
+    var ov = document.getElementById('ma-sync-overlay');
+    if (!ov) return;
+    ov.hidden = false;
+    var rp = document.getElementById('ma-sync-repo');
+    if (rp) rp.textContent = repoPath();
+    var inp = document.getElementById('ma-sync-token');
+    if (inp) { inp.value = ''; inp.placeholder = token() ? 'Connected — paste a new token to replace' : 'github_pat_…'; }
+    renderPanelStatus();
+  }
+  function closePanel() { var ov = document.getElementById('ma-sync-overlay'); if (ov) ov.hidden = true; }
+
+  function injectUI() {
+    if (document.getElementById('ma-sync-btn')) return;
+    var actions = document.querySelector('.topbar .actions');
+    if (!actions) return;
+    var st = document.createElement('style');
+    st.textContent = [
+      '#ma-sync-btn{position:relative;}',
+      '#ma-sync-dot{position:absolute;right:2px;bottom:2px;width:8px;height:8px;border-radius:50%;background:#94a3b8;border:1.5px solid rgba(255,255,255,.9);}',
+      'html.dark #ma-sync-dot{border-color:rgba(30,41,59,.9);}',
+      '#ma-sync-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99990;display:flex;align-items:center;justify-content:center;padding:20px;}',
+      '.ma-sync-panel{width:min(440px,92vw);background:#fff;color:#1f2937;border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.35);padding:18px 20px;font-size:14.5px;line-height:1.5;}',
+      '.ma-sync-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:16px;margin-bottom:10px;}',
+      '#ma-sync-close{background:none;border:none;font-size:22px;cursor:pointer;color:inherit;line-height:1;padding:0 2px;}',
+      '.ma-sync-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:600;}',
+      '.ma-sync-swatch{width:10px;height:10px;border-radius:50%;background:#94a3b8;flex:0 0 auto;}',
+      '.ma-sync-help{margin:0 0 12px;font-size:13px;color:#475569;}',
+      '.ma-sync-help a{color:var(--primary,#21AED9);word-break:break-all;}',
+      '#ma-sync-token{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #cbd5e1;border-radius:8px;font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#f8fafc;color:inherit;}',
+      '.ma-sync-actions{display:flex;gap:8px;margin-top:12px;}',
+      '.ma-sync-actions button{flex:1;padding:9px 0;border-radius:8px;border:1px solid #cbd5e1;background:#f1f5f9;color:#334155;font-weight:600;cursor:pointer;font-size:13.5px;}',
+      '#ma-sync-connect{background:var(--primary,#21AED9);border-color:var(--primary,#21AED9);color:#fff;}',
+      'html.dark .ma-sync-panel{background:#1e293b;color:#e2e8f0;}',
+      'html.dark .ma-sync-help{color:#94a3b8;}',
+      'html.dark #ma-sync-token{background:#0f172a;border-color:#334155;color:#e2e8f0;}',
+      'html.dark .ma-sync-actions button{background:#334155;border-color:#475569;color:#e2e8f0;}',
+      'html.dark #ma-sync-connect{background:var(--primary,#21AED9);border-color:var(--primary,#21AED9);color:#fff;}'
+    ].join('\n');
+    document.head.appendChild(st);
+
+    var btn = document.createElement('button');
+    btn.className = 'toggle-btn'; btn.id = 'ma-sync-btn';
+    btn.title = 'Cross-device sync'; btn.setAttribute('aria-label', 'Cross-device sync');
+    btn.innerHTML = '☁️<span id="ma-sync-dot"></span>';
+    btn.onclick = openPanel;
+    actions.insertBefore(btn, document.getElementById('dark-toggle') || null);
+
+    var ov = document.createElement('div');
+    ov.id = 'ma-sync-overlay'; ov.hidden = true;
+    ov.innerHTML =
+      '<div class="ma-sync-panel" role="dialog" aria-label="Cross-device sync">' +
+        '<div class="ma-sync-head"><span>Cross-device sync</span><button id="ma-sync-close" aria-label="Close">×</button></div>' +
+        '<div class="ma-sync-row"><span class="ma-sync-swatch" id="ma-sync-status-dot"></span><span id="ma-sync-status"></span></div>' +
+        '<p class="ma-sync-help">Highlights and question marks sync through the private GitHub repo <b id="ma-sync-repo"></b>. Paste a fine-grained personal access token once per device — create it at <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> with access to only that repo and <b>Contents: Read and write</b>.</p>' +
+        '<input id="ma-sync-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">' +
+        '<div class="ma-sync-actions">' +
+          '<button id="ma-sync-connect">Connect</button>' +
+          '<button id="ma-sync-now">Sync now</button>' +
+          '<button id="ma-sync-forget">Disconnect</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function (e) { if (e.target === ov) closePanel(); });
+    document.getElementById('ma-sync-close').onclick = closePanel;
+    document.getElementById('ma-sync-connect').onclick = function () {
+      var inp = document.getElementById('ma-sync-token');
+      var v = (inp && inp.value || '').trim();
+      if (v) { try { real.setItem('ma_sync_token', v); } catch (e) {} if (inp) inp.value = ''; }
+      if (!token()) { if (inp) inp.focus(); return; }
+      doPush(false);
+    };
+    document.getElementById('ma-sync-now').onclick = function () { doPush(false); };
+    document.getElementById('ma-sync-forget').onclick = function () {
+      try { real.removeItem('ma_sync_token'); } catch (e) {}
+      setStatus('off'); openPanel();
+    };
+  }
+
+  injectUI();
+  window.__maSync = {
+    pull: pull,
+    push: function () { return doPush(false); },
+    state: function () { return { state: state, dirty: !!meta.dirty, last: meta.last, sha: meta.sha }; },
+    cfg: function (k, v) { if (v === undefined) return real.getItem(k); if (v === null) real.removeItem(k); else real.setItem(k, String(v)); }
+  };
+  if (token()) pull(); else setStatus('off');
+})();
+</script>
 </body>
 </html>
