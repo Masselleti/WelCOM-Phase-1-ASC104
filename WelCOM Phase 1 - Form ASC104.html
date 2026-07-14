@@ -1858,7 +1858,7 @@
                 #d{background:#1a1a1a;color:#0f0;font-family:'Courier New',monospace;font-size:22px;padding:10px;text-align:right;border:1px solid #555;margin-bottom:8px;min-height:30px;border-radius:3px;overflow:hidden;}
                 .row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px;}
                 button{background:#4a525c;color:#fff;border:1px solid #1a1d22;padding:14px 0;font-size:16px;cursor:pointer;border-radius:3px;font-family:inherit;}
-                button:hover{background:#5a626c;} button.op{background:#2a6694;} button.eq{background:#1f8a4c;} button.cl{background:#c0392b;}
+                *{-webkit-tap-highlight-color:transparent;}@media (hover: hover){button:hover{background:#5a626c;}} button.op{background:#2a6694;} button.eq{background:#1f8a4c;} button.cl{background:#c0392b;}
             </style></head><body>
                 <div id="d">0</div>
                 <div class="row"><button class="cl" onclick="d.textContent='0'">C</button><button onclick="bs()">⌫</button><button class="op" onclick="o('%')">%</button><button class="op" onclick="o('/')">÷</button></div>
@@ -5210,6 +5210,104 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     cfg: function (k, v) { if (v === undefined) return real.getItem(k); if (v === null) real.removeItem(k); else real.setItem(k, String(v)); }
   };
   if (token()) pull(); else setStatus('off');
+})();
+</script>
+<!-- ma-no-touch-hover (2026-07-14): iOS/iPadOS apply desktop :hover styles to
+     whatever was last tapped and leave them stuck until the next tap, so on
+     the phone every touched control kept its mouse-pointer shading (answer
+     choices held a pale wash, topbar Tools a darker box - user request: no
+     hover shading on mobile). CSS alone can't blanket-revert unknown hover
+     styles, so on touch-primary devices this strips the :hover selectors out
+     of every stylesheet after load. Mixed selector lists keep their non-hover
+     selectors (split on TOP-LEVEL commas only - :is()/:not() argument lists
+     stay intact); :active press feedback and the transient tap-highlight
+     rules are untouched. A MutationObserver re-strips when a late <style> or
+     <link> arrives, directly or nested inside an injected wrapper (styles
+     built via sheet.insertRule or textContent rewrites after insertion are
+     out of scope - fleet blocks set textContent before appending). Companion
+     edit shipped with this block: the calculator popup (window.open +
+     document.write - a separate document this script can never reach) has
+     its template's button:hover rule wrapped in @media (hover: hover) and
+     gained a tap-highlight kill. Same touch gate as the fleet's phone
+     blocks, incl. the ma_force_phone override for desktop testing. -->
+<style id="ma-no-touch-hover-css">
+@media (hover: none) and (pointer: coarse) {
+    * { -webkit-tap-highlight-color: transparent !important; }
+}
+</style>
+<script id="ma-no-touch-hover">
+(function () {
+    if (window.maNoTouchHover) return;   /* double-insertion sentinel */
+    window.maNoTouchHover = true;
+    var coarse = window.matchMedia('(hover: none) and (pointer: coarse)');
+    function touchy() {
+        try { return coarse.matches || localStorage.getItem('ma_force_phone') === '1'; }
+        catch (e) { return coarse.matches; }
+    }
+    function splitTop(sel) {   /* split selector list on depth-0 commas only */
+        var out = [], depth = 0, cur = '';
+        for (var k = 0; k < sel.length; k++) {
+            var c = sel.charAt(k);
+            if (c === '(' || c === '[') depth++;
+            else if (c === ')' || c === ']') depth--;
+            if (c === ',' && depth === 0) { out.push(cur); cur = ''; }
+            else cur += c;
+        }
+        out.push(cur);
+        return out;
+    }
+    function stripGroup(group) {
+        var rules;
+        try { rules = group.cssRules; } catch (e) { return; }   /* cross-origin sheet */
+        if (!rules) return;
+        for (var i = rules.length - 1; i >= 0; i--) {
+            var r = rules[i];
+            var sel = r.selectorText;
+            if (sel && sel.indexOf(':hover') !== -1) {
+                var kept = [];
+                var parts = splitTop(sel);
+                for (var j = 0; j < parts.length; j++) {
+                    if (parts[j].indexOf(':hover') === -1) kept.push(parts[j].replace(/^\s+|\s+$/g, ''));
+                }
+                var body = r.style ? r.style.cssText : '';
+                try { group.deleteRule(i); } catch (e) { continue; }
+                if (kept.length && body) {
+                    try { group.insertRule(kept.join(', ') + ' { ' + body + ' }', i); } catch (e) {}
+                }
+            } else if (r.cssRules && r.cssRules.length) {
+                stripGroup(r);   /* @media / @supports */
+            }
+        }
+    }
+    function stripAll() {
+        for (var i = 0; i < document.styleSheets.length; i++) stripGroup(document.styleSheets[i]);
+    }
+    function arm() {
+        if (!touchy()) return;
+        stripAll();
+        var mo = new MutationObserver(function (muts) {
+            for (var i = 0; i < muts.length; i++) {
+                var added = muts[i].addedNodes;
+                for (var j = 0; j < added.length; j++) {
+                    var n = added[j];
+                    if (n.nodeType !== 1) continue;
+                    var t = n.tagName;
+                    if (t === 'STYLE' || t === 'LINK' || (n.querySelector && n.querySelector('style,link'))) {
+                        /* a late <link> has no sheet yet at insertion - re-strip on load too */
+                        var links = t === 'LINK' ? [n] : n.querySelectorAll('link');
+                        for (var k = 0; k < links.length; k++) {
+                            links[k].addEventListener('load', stripAll, { once: true });
+                        }
+                        stripAll();
+                        return;
+                    }
+                }
+            }
+        });
+        mo.observe(document.documentElement, { childList: true, subtree: true });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arm);
+    else arm();
 })();
 </script>
 </body>
