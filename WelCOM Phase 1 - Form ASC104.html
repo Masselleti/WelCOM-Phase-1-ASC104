@@ -4793,6 +4793,21 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
   } catch (e) {}
   function saveMeta() { try { real.setItem(META_KEY, JSON.stringify(meta)); } catch (e) {} }
 
+  /* One-time bootstrap: highlight/mark keys created BEFORE sync was ever active
+     have no recorded write-time; untimestamped, they read as time 0 and would be
+     silently overwritten by ANY remote value on first sync. Seed them once with a
+     single baseline "now" so the first merge is decided by real last-write-wins. */
+  (function seedBaseline() {
+    var now = Date.now(), seeded = false, i, k;
+    try {
+      for (i = 0; i < real.length; i++) {
+        k = real.key(i);
+        if (ours(k) && !meta.t[k] && !meta.gone[k]) { meta.t[k] = now; seeded = true; }
+      }
+    } catch (e) {}
+    if (seeded) saveMeta();
+  })();
+
   function cfg(k, d) { try { var v = real.getItem(k); return (v === null || v === '') ? d : v; } catch (e) { return d; } }
   function token() { return (cfg('ma_sync_token', '') || '').trim(); }
   function apiBase() { return cfg('ma_sync_api', 'https://api.github.com').replace(/\/+$/, ''); }
@@ -4806,11 +4821,20 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     var r = repoPath().split('/');
     return apiBase() + '/repos/' + encodeURIComponent(r[0] || '') + '/' + encodeURIComponent(r[1] || '');
   }
+  /* A 429, or a 403 carrying rate-limit signals, is a transient throttle — NOT a
+     token-permission problem. GitHub exposes these headers via CORS. */
+  function isRateLimited(r) {
+    try {
+      if (r.status === 429) return true;
+      if (r.status === 403 && (r.headers.get('retry-after') || r.headers.get('x-ratelimit-remaining') === '0')) return true;
+    } catch (e) {}
+    return false;
+  }
   /* Probe the repo root to classify an ambiguous 404 → 'ok' (repo reachable),
-     'norepo' (token can't see it), 'auth' (401), 'perm' (403), or 'net'. */
+     'norepo' (token can't see it), 'auth' (401), 'perm' (403), 'rate', or 'net'. */
   function probeRepo() {
-    return fetch(repoRootURL(), { method: 'GET', headers: { 'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json' }, cache: 'no-store' })
-      .then(function (r) { return r.ok ? 'ok' : (r.status === 401 ? 'auth' : (r.status === 403 ? 'perm' : 'norepo')); })
+    return fetchT(repoRootURL(), { method: 'GET', headers: { 'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json' }, cache: 'no-store' })
+      .then(function (r) { return r.ok ? 'ok' : (r.status === 401 ? 'auth' : (isRateLimited(r) ? 'rate' : (r.status === 403 ? 'perm' : 'norepo'))); })
       .catch(function () { return 'net'; });
   }
 
@@ -4854,6 +4878,18 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     return new TextDecoder().decode(b);
   }
 
+  /* fetch with a bounded timeout so a hung request can't wedge sync (pushing/
+     pulling would otherwise stay true forever). Unload flushes (keepalive) are
+     exempt. Timeout overridable via native key ma_sync_timeout (ms). */
+  function fetchT(url, opt) {
+    opt = opt || {};
+    if (opt.keepalive) return fetch(url, opt);
+    var ms = parseInt(cfg('ma_sync_timeout', ''), 10); if (!(ms > 0)) ms = 25000;
+    var ctrl, timer;
+    try { ctrl = new AbortController(); opt.signal = ctrl.signal; timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, ms); } catch (e) {}
+    return fetch(url, opt).then(function (r) { if (timer) clearTimeout(timer); return r; }, function (e) { if (timer) clearTimeout(timer); throw e; });
+  }
+
   function gh(method, body, keepalive) {
     var opt = {
       method: method,
@@ -4862,7 +4898,24 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     };
     if (body) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
     if (keepalive) opt.keepalive = true;
-    return fetch(fileURL(), opt);
+    return fetchT(fileURL(), opt);
+  }
+
+  /* Re-sync the visible mark controls (uw checkbox + Flag button) for the shown
+     question after a remote MA_FLAG change; each control carries its own flagKey
+     in its onclick, so this works for whatever question is on screen. */
+  function refreshFlagUI() {
+    try {
+      var els = document.querySelectorAll('[onclick*="MA_FLAG|||"]');
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i], m = (el.getAttribute('onclick') || '').match(/MA_FLAG\|\|\|[^'"]*/);
+        if (!m) continue;
+        var on = real.getItem(m[0]) === 'true';
+        if (el.tagName === 'INPUT') { el.checked = on; }
+        else { el.classList.toggle('active-flag', on); var lbl = el.querySelector('.lbl'); if (lbl) lbl.textContent = on ? 'Flagged' : 'Flag'; }
+      }
+      if (typeof uwRenderSidebar === 'function') uwRenderSidebar();
+    } catch (e) {}
   }
 
   /* --- merge --- */
@@ -4872,7 +4925,8 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
       if (!ours(k) || !keys[k]) continue;
       var rt = keys[k].t || 0, lt = meta.t[k] || meta.gone[k] || 0;
       if (rt > lt) {
-        try { if (real.getItem(k) !== keys[k].d) changed++; real.setItem(k, keys[k].d); } catch (e) { continue; }
+        try { if (real.getItem(k) !== keys[k].d) changed++; real.setItem(k, keys[k].d); }
+        catch (e) { meta.sha = null; meta.dirty = true; continue; }
         meta.t[k] = rt; delete meta.gone[k];
       }
     }
@@ -4885,7 +4939,12 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
       }
     }
     if (changed) {
-      try { if (document.body.classList.contains('in-nbme-question') && typeof maLoadHighlights === 'function') maLoadHighlights(); } catch (e) {}
+      try {
+        if (document.body.classList.contains('in-nbme-question')) {
+          if (typeof maLoadHighlights === 'function') maLoadHighlights();
+          refreshFlagUI();
+        }
+      } catch (e) {}
     }
     return changed;
   }
@@ -4926,8 +4985,10 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     pushing = true; setStatus('sync');
     return gh('GET').then(function (r) {
       if (r.status === 401) throw { s: 'auth' };
+      if (isRateLimited(r)) throw { s: 'rate' };
       if (r.status === 403) throw { s: 'perm' };
       if (r.status === 404) return null;
+      if (r.status === 413) throw { s: 'toobig' };
       if (!r.ok) throw { code: r.status };
       return r.json();
     }).then(function (j) {
@@ -4941,12 +5002,15 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
       if (remoteRaw !== null && out === remoteRaw) {
         meta.dirty = false; meta.last = Date.now(); saveMeta(); pushing = false; setStatus('ok'); return 'clean';
       }
+      if (out.length > 1000000) { pushing = false; setStatus('toobig'); return 'toobig'; }
       var put = { message: 'sync: ' + DB, content: b64e(out) };
       if (meta.sha) put.sha = meta.sha;
       return gh('PUT', put).then(function (pr) {
         if (pr.status === 404) throw { s: 'norepo' };
         if (pr.status === 401) throw { s: 'auth' };
+        if (isRateLimited(pr)) throw { s: 'rate' };
         if (pr.status === 403) throw { s: 'perm' };
+        if (pr.status === 413) throw { s: 'toobig' };
         if (pr.status === 409 || pr.status === 422) {
           pushing = false;
           if (!isRetry) { meta.sha = null; return doPush(true); }
@@ -4971,7 +5035,9 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     pulling = true; setStatus('sync');
     return gh('GET').then(function (r) {
       if (r.status === 401) { pulling = false; setStatus('auth'); return 'auth'; }
+      if (isRateLimited(r)) { pulling = false; setStatus('rate'); return 'rate'; }
       if (r.status === 403) { pulling = false; setStatus('perm'); return 'perm'; }
+      if (r.status === 413) { pulling = false; setStatus('toobig'); return 'toobig'; }
       if (r.status === 404) {
         /* 404 is ambiguous: file not created yet (repo OK) vs repo unreachable.
            Probe the repo root to tell them apart and show the right message. */
@@ -5031,6 +5097,8 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     auth: ['#f59e0b', 'Token invalid — paste a new one'],
     perm: ['#f59e0b', 'Token lacks access — enable Contents: Read & write'],
     norepo: ['#f59e0b', "Can't reach the repo — check the token's repository access"],
+    rate: ['#f59e0b', 'GitHub rate limit — will retry shortly'],
+    toobig: ['#ef4444', 'Too many highlights on this form to sync (1 MB limit)'],
     err:  ['#ef4444', 'Sync error — will retry'],
     net:  ['#ef4444', 'Offline — will retry when back online']
   };
