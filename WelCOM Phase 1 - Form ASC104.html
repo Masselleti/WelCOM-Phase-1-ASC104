@@ -4802,6 +4802,17 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     return apiBase() + '/repos/' + encodeURIComponent(r[0] || '') + '/' + encodeURIComponent(r[1] || '') +
       '/contents/sync/' + encodeURIComponent(DB + '.json');
   }
+  function repoRootURL() {
+    var r = repoPath().split('/');
+    return apiBase() + '/repos/' + encodeURIComponent(r[0] || '') + '/' + encodeURIComponent(r[1] || '');
+  }
+  /* Probe the repo root to classify an ambiguous 404 → 'ok' (repo reachable),
+     'norepo' (token can't see it), 'auth' (401), 'perm' (403), or 'net'. */
+  function probeRepo() {
+    return fetch(repoRootURL(), { method: 'GET', headers: { 'Authorization': 'Bearer ' + token(), 'Accept': 'application/vnd.github+json' }, cache: 'no-store' })
+      .then(function (r) { return r.ok ? 'ok' : (r.status === 401 ? 'auth' : (r.status === 403 ? 'perm' : 'norepo')); })
+      .catch(function () { return 'net'; });
+  }
 
   /* --- wrap the (already shimmed) localStorage to observe writes --- */
   var target = window.localStorage;
@@ -4914,7 +4925,8 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     if (pushing) { schedulePush(); return Promise.resolve('busy'); }
     pushing = true; setStatus('sync');
     return gh('GET').then(function (r) {
-      if (r.status === 401 || r.status === 403) throw { auth: true };
+      if (r.status === 401) throw { s: 'auth' };
+      if (r.status === 403) throw { s: 'perm' };
       if (r.status === 404) return null;
       if (!r.ok) throw { code: r.status };
       return r.json();
@@ -4932,7 +4944,9 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
       var put = { message: 'sync: ' + DB, content: b64e(out) };
       if (meta.sha) put.sha = meta.sha;
       return gh('PUT', put).then(function (pr) {
-        if (pr.status === 401 || pr.status === 403) throw { auth: true };
+        if (pr.status === 404) throw { s: 'norepo' };
+        if (pr.status === 401) throw { s: 'auth' };
+        if (pr.status === 403) throw { s: 'perm' };
         if (pr.status === 409 || pr.status === 422) {
           pushing = false;
           if (!isRetry) { meta.sha = null; return doPush(true); }
@@ -4947,7 +4961,7 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
       });
     }).catch(function (e) {
       pushing = false;
-      if (e && e.auth) setStatus('auth'); else setStatus(navigator.onLine === false ? 'net' : 'err');
+      if (e && e.s) setStatus(e.s); else setStatus(navigator.onLine === false ? 'net' : 'err');
       return 'fail';
     });
   }
@@ -4956,11 +4970,20 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     if (pulling) return Promise.resolve('busy');
     pulling = true; setStatus('sync');
     return gh('GET').then(function (r) {
-      if (r.status === 401 || r.status === 403) { pulling = false; setStatus('auth'); return 'auth'; }
+      if (r.status === 401) { pulling = false; setStatus('auth'); return 'auth'; }
+      if (r.status === 403) { pulling = false; setStatus('perm'); return 'perm'; }
       if (r.status === 404) {
-        pulling = false; meta.last = Date.now(); saveMeta();
-        if (meta.dirty) { setStatus('sync'); schedulePush(); } else setStatus('ok');
-        return 'empty';
+        /* 404 is ambiguous: file not created yet (repo OK) vs repo unreachable.
+           Probe the repo root to tell them apart and show the right message. */
+        return probeRepo().then(function (ps) {
+          pulling = false;
+          if (ps === 'ok') {
+            meta.last = Date.now(); saveMeta();
+            if (meta.dirty) { setStatus('sync'); schedulePush(); } else setStatus('ok');
+            return 'empty';
+          }
+          setStatus(ps); return ps;
+        });
       }
       if (!r.ok) { pulling = false; setStatus('err'); return 'err'; }
       return r.json().then(function (j) {
@@ -5005,7 +5028,9 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     off:  ['#94a3b8', 'Not connected on this device'],
     ok:   ['#22c55e', 'Synced'],
     sync: ['#38bdf8', 'Syncing…'],
-    auth: ['#f59e0b', 'Token rejected — paste a new one'],
+    auth: ['#f59e0b', 'Token invalid — paste a new one'],
+    perm: ['#f59e0b', 'Token lacks access — enable Contents: Read & write'],
+    norepo: ['#f59e0b', "Can't reach the repo — check the token's repository access"],
     err:  ['#ef4444', 'Sync error — will retry'],
     net:  ['#ef4444', 'Offline — will retry when back online']
   };
