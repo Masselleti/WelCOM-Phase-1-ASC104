@@ -4208,7 +4208,8 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     'use strict';
     var panel = null, input = null, resultsEl = null, countEl = null;
     var panelOpen = false;
-    var index = null;       /* { sig, items: [{pos, id, text, lower}] } */
+    var index = null;       /* { sig, items: [{pos, id, text, lower, ctext, clower}] }
+                               text/lower = stem, ctext/clower = "(A) ..." answer choices */
     var activeTerms = [];   /* lowercased words of the active query */
     var hits = [];          /* matching index items, session order */
     var hitSet = new Set(); /* matching session positions */
@@ -4252,14 +4253,27 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
             if (!db) return;
             var refs = groups[path].filter(function (r) { return isFinite(r.id); });
             if (!refs.length) return;
+            var idList = refs.map(function (r) { return r.id; }).join(',');
             var byId = {};
             try {
-                var res = db.exec('SELECT id, question FROM Questions WHERE id IN (' + refs.map(function (r) { return r.id; }).join(',') + ')');
+                var res = db.exec('SELECT id, question FROM Questions WHERE id IN (' + idList + ')');
                 if (res.length) res[0].values.forEach(function (row) { byId[row[0]] = String(row[1] || ''); });
             } catch (e) { return; }
+            /* answer choices are searchable too (added by request 2026-07-15).
+               ORDER BY answerID mirrors the engine's own render query, so the
+               (A)/(B)/(C) labels below match the letters on screen.
+               Explanations stay OUT of the index (exam spoilers). */
+            var ansById = {};
+            try {
+                var res2 = db.exec('SELECT qId, answerText FROM Answers WHERE qId IN (' + idList + ') ORDER BY qId, answerID');
+                if (res2.length) res2[0].values.forEach(function (row) {
+                    (ansById[row[0]] = ansById[row[0]] || []).push(toText(String(row[1] || '')));
+                });
+            } catch (e) { }
             refs.forEach(function (r) {
                 var t = toText(byId[r.id]);
-                if (t) items.push({ pos: r.pos, id: r.id, text: t, lower: t.toLowerCase() });
+                var c = (ansById[r.id] || []).map(function (a, i) { return '(' + String.fromCharCode(65 + i) + ') ' + a; }).join('  ');
+                if (t || c) items.push({ pos: r.pos, id: r.id, text: t, lower: t.toLowerCase(), ctext: c, clower: c.toLowerCase() });
             });
         });
         items.sort(function (a, b) { return a.pos - b.pos; });
@@ -4267,12 +4281,17 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
         return index;
     }
     function snippetFor(it) {
-        var at = -1;
-        for (var i = 0; i < activeTerms.length && at === -1; i++) at = it.lower.indexOf(activeTerms[i]);
+        /* prefer a stem hit for context; fall back to the matching choice */
+        var src = it.text, low = it.lower, at = -1, i;
+        for (i = 0; i < activeTerms.length && at === -1; i++) at = low.indexOf(activeTerms[i]);
+        if (at === -1 && it.clower) {
+            for (i = 0; i < activeTerms.length && at === -1; i++) at = it.clower.indexOf(activeTerms[i]);
+            if (at !== -1) { src = it.ctext; low = it.clower; }
+        }
         if (at < 0) at = 0;
         var start = Math.max(0, at - 45);
-        var end = Math.min(it.text.length, at + 90);
-        return (start > 0 ? '…' : '') + it.text.slice(start, end) + (end < it.text.length ? '…' : '');
+        var end = Math.min(src.length, at + 90);
+        return (start > 0 ? '…' : '') + src.slice(start, end) + (end < src.length ? '…' : '');
     }
     function appendMarked(el, s) {
         var lower = s.toLowerCase(), n = s.length, hot = new Uint8Array(n), i, j, k;
@@ -4340,23 +4359,32 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     function applyStemHighlight() {
         if (!canHl) return;
         if (!activeTerms.length) { CSS.highlights.delete('ma-search'); return; }
+        /* stem + the visible answer choices; .option-text only, so the A/B/C
+           letter badges and strike buttons never light up. Per-node
+           offsetParent check picks the visible dual-container duplicate. */
+        var roots = [];
         var stem = visibleOne('.question-stem');
-        if (!stem) { CSS.highlights.delete('ma-search'); return; }
+        if (stem) roots.push(stem);
+        var otexts = document.querySelectorAll('.option-text');
+        for (var oi = 0; oi < otexts.length; oi++) { if (otexts[oi].offsetParent !== null) roots.push(otexts[oi]); }
+        if (!roots.length) { CSS.highlights.delete('ma-search'); return; }
         var hl = new Highlight(), any = false;
-        var walker = document.createTreeWalker(stem, NodeFilter.SHOW_TEXT);
-        var node;
-        while ((node = walker.nextNode())) {
-            var lower = node.nodeValue.toLowerCase();
-            for (var t = 0; t < activeTerms.length; t++) {
-                var term = activeTerms[t];
-                var at = lower.indexOf(term);
-                while (at !== -1) {
-                    var r = document.createRange();
-                    r.setStart(node, at);
-                    r.setEnd(node, at + term.length);
-                    hl.add(r);
-                    any = true;
-                    at = lower.indexOf(term, at + 1);
+        for (var ri = 0; ri < roots.length; ri++) {
+            var walker = document.createTreeWalker(roots[ri], NodeFilter.SHOW_TEXT);
+            var node;
+            while ((node = walker.nextNode())) {
+                var lower = node.nodeValue.toLowerCase();
+                for (var t = 0; t < activeTerms.length; t++) {
+                    var term = activeTerms[t];
+                    var at = lower.indexOf(term);
+                    while (at !== -1) {
+                        var r = document.createRange();
+                        r.setStart(node, at);
+                        r.setEnd(node, at + term.length);
+                        hl.add(r);
+                        any = true;
+                        at = lower.indexOf(term, at + 1);
+                    }
                 }
             }
         }
@@ -4394,7 +4422,7 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
         if (activeTerms.length) {
             var ix = buildIndex();
             hits = ix.items.filter(function (it) {
-                return activeTerms.every(function (t) { return it.lower.indexOf(t) !== -1; });
+                return activeTerms.every(function (t) { return it.lower.indexOf(t) !== -1 || it.clower.indexOf(t) !== -1; });
             });
             hitSet = new Set(hits.map(function (h) { return h.pos; }));
         }
