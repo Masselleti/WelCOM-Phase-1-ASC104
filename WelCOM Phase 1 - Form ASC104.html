@@ -5464,5 +5464,34 @@ html.ma-phone .nbme-skin.uw-skin .uw-header-iteminfo { display: none !important;
     else arm();
 })();
 </script>
+<!-- ma-phone-topbar-onerow (2026-07-15): dashboard/topics topbar on the phone
+     stacked into two rows (back button, then actions) via the <=767px media
+     rules, and #dark-toggle { flex: 1 } stretched the moon across the
+     leftover row (user request: one row, back button left, compact dark
+     toggle). Phone layout only (html.ma-phone) - narrow DESKTOP windows keep
+     the stock stacked layout. !important beats the <=767 and <=400 media
+     rules (incl. the <=400 .actions column stack). UWorld's front page was
+     already one-row on phone - these rules align with it, not against it. -->
+<style id="ma-phone-topbar-onerow">
+html.ma-phone .topbar {
+    flex-direction: row !important; align-items: center !important;
+    flex-wrap: nowrap !important; gap: 8px !important;
+    padding: 10px 12px !important;
+}
+html.ma-phone .topbar .topbar-left { flex: 0 1 auto !important; min-width: 0; }
+html.ma-phone .topbar .topbar-back-btn { padding: 0 10px !important; }
+html.ma-phone .topbar .actions {
+    width: auto !important; flex: 1 1 auto !important;
+    flex-direction: row !important; justify-content: flex-end !important;
+    gap: 6px !important; min-width: 0;
+}
+html.ma-phone .topbar .typo-controls { margin: 0 !important; width: auto !important; }
+html.ma-phone .topbar .typo-btn { padding: 8px 10px !important; }
+html.ma-phone .topbar #dark-toggle {
+    flex: 0 0 auto !important; width: auto !important;
+    min-width: 44px; padding: 8px 10px !important;
+}
+html.ma-phone .topbar #ma-sync-btn { flex: 0 0 auto !important; }
+</style>
 </body>
 </html>
