@@ -3483,20 +3483,20 @@ html.ma-phone .nbme-skin.uw-skin .uw-q-bullet { width: 10px !important; height: 
 
 /* Header: let it wrap to two rows, drop dead weight, real tap targets */
 html.ma-phone .nbme-skin.uw-skin .uw-header {
-    height: auto !important; min-height: 44px;
+    height: auto !important; min-height: 40px; /* 44->40: slimmer bar (user request 2026-07-14) */
     flex-wrap: wrap !important; overflow: visible !important;
     align-items: center !important;
-    padding: 4px 6px; row-gap: 2px;
+    padding: 2px 6px; row-gap: 2px;
 }
 html.ma-phone .nbme-skin.uw-skin .uw-header-left { display: none !important; }
-html.ma-phone .nbme-skin.uw-skin .uw-header-iteminfo { padding: 2px 6px !important; }
+html.ma-phone .nbme-skin.uw-skin .uw-header-iteminfo { padding: 2px 6px !important; line-height: 1.25 !important; }
 html.ma-phone .nbme-skin.uw-skin .uw-header-nav { gap: 16px !important; }
 html.ma-phone .nbme-skin.uw-skin .uw-header-tools {
     flex: 1 1 100% !important; justify-content: space-evenly !important;
     border-top: 1px solid rgba(255,255,255,.18);
 }
 html.ma-phone .nbme-skin.uw-skin .uw-tool {
-    min-width: 44px !important; min-height: 40px !important;
+    min-width: 44px !important; min-height: 32px !important;
     padding: 2px 4px !important; font-size: 8px !important;
     /* grow to fill the row so each icon+label centers between the
        divider lines (user request 2026-07-10) */
