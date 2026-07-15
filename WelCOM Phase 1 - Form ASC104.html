@@ -5345,5 +5345,37 @@ html.ma-phone #highlight-palette { padding: 9px 15px; gap: 9px; }
 html.ma-phone #highlight-palette .hp-color { width: 30px; height: 30px; border-width: 3px; }
 html.ma-phone #highlight-palette .hp-remove { font-size: 18px; margin-left: 6px; }
 </style>
+
+<script id="ma-hotkeys-js">
+/* ma-hotkeys (2026-07-15): m = toggle Mark on the current question;
+   Cmd/Ctrl+K = toggle the in-session Search panel. Capture phase so a
+   consumed keystroke never reaches the engines' bubble handlers. */
+(function () {
+    'use strict';
+    function inEditable(t) {
+        return !!(t && t.nodeType === 1 && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.repeat) return;
+        if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'k' || e.key === 'K')) {
+            if (typeof window.maSearchToggle !== 'function') return;
+            if (!document.body.classList.contains('in-nbme-question')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            window.maSearchToggle();
+            return;
+        }
+        if ((e.key === 'm' || e.key === 'M') && !e.metaKey && !e.ctrlKey && !e.altKey) {
+            if (inEditable(e.target)) return;
+            if (!document.body.classList.contains('in-nbme-question')) return;
+            var cb = document.getElementById('uw-mark-cb');
+            if (!cb) return;
+            e.preventDefault();
+            e.stopPropagation();
+            cb.click();
+        }
+    }, true);
+})();
+</script>
 </body>
 </html>
