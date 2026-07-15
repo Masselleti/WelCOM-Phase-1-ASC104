@@ -5395,6 +5395,15 @@ html.ma-phone .nbme-skin.uw-skin .uw-header-left {
     /* v2 (2026-07-15): blend with the bar - no desktop panel color on phone */
     background: transparent !important;
     border-right: 0 !important;
+    /* v3 (2026-07-15): right divider matching the Tools toggle's exactly
+       (same #0a1d3a, 32px tall, centered) instead of the full-height
+       desktop panel edge */
+    position: relative !important;
+}
+html.ma-phone .nbme-skin.uw-skin .uw-header-left::after {
+    content: ''; position: absolute; right: 0; top: 50%;
+    height: 32px; transform: translateY(-50%);
+    border-right: 1px solid #0a1d3a;
 }
 html.ma-phone .nbme-skin.uw-skin .uw-header-iteminfo { display: none !important; }
 </style>
