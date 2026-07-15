@@ -5377,5 +5377,52 @@ html.ma-phone #highlight-palette .hp-remove { font-size: 18px; margin-left: 6px;
     }, true);
 })();
 </script>
+<!-- ma-phone-header-name (2026-07-15): phone exam header, top-left box now
+     matches the desktop two-row name box (user request): form name on top
+     (divider under it, same as desktop), and the second row rewritten per
+     render to "Question N (Id: X)". The phone layout used to hide the
+     .uw-header-left name box and show the Item/Id block instead; now the
+     name box shows and the iteminfo block is hidden (its text still feeds
+     the rewrite - the engines re-render it with the live N/id each
+     navigation). Phone layout only; desktop keeps its static "Question"
+     row. The observer is write-guarded (writes only on change) so its own
+     mutations can't feed back. -->
+<style id="ma-phone-header-name-css">
+html.ma-phone .nbme-skin.uw-skin .uw-header-left {
+    display: flex !important;
+    padding: 2px 8px !important;
+    min-width: 0 !important;
+}
+html.ma-phone .nbme-skin.uw-skin .uw-header-iteminfo { display: none !important; }
+</style>
+<script id="ma-phone-header-name">
+(function () {
+    if (window.maPhoneHeaderName) return;   /* double-insertion sentinel */
+    window.maPhoneHeaderName = true;
+    function phone() { return document.documentElement.classList.contains('ma-phone'); }
+    function sync() {
+        if (!phone()) return;
+        var infos = document.querySelectorAll('.uw-header-iteminfo');
+        for (var i = 0; i < infos.length; i++) {
+            var head = infos[i].parentElement;
+            var title = head && head.querySelector('.uw-header-left-title');
+            if (!title) continue;
+            var itemEl = infos[i].querySelector('.uw-item');
+            var qidEl = infos[i].querySelector('.uw-qid');
+            var mItem = itemEl && /Item:\s*(\d+)/.exec(itemEl.textContent);
+            var mId = qidEl && /Id:\s*(\S+)/.exec(qidEl.textContent);
+            if (!mItem || !mId) continue;
+            var want = 'Question ' + mItem[1] + ' (Id: ' + mId[1] + ')';
+            if (title.textContent !== want) title.textContent = want;   /* write-guard */
+        }
+    }
+    function arm() {
+        sync();
+        new MutationObserver(sync).observe(document.body, { childList: true, subtree: true });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arm);
+    else arm();
+})();
+</script>
 </body>
 </html>
