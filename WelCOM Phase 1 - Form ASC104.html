@@ -839,7 +839,7 @@
         .nbme-skin.uw-skin {
             background: #fff !important;
             display: grid !important;
-            grid-template-rows: 50px 1fr 36px !important;
+            grid-template-rows: 40px 1fr 36px !important;
             grid-template-columns: 1fr !important;
             min-height: 100vh !important;
             min-height: 100dvh !important;
@@ -861,18 +861,18 @@
         /* TOP HEADER (navy) */
         .uw-header {
             grid-row: 1; background: #1f3863; color: #fff;
-            display: flex; align-items: stretch; height: 50px;
+            display: flex; align-items: stretch; height: 40px; /* 50px -> 40px: slimmer bar, icon sizes unchanged (user request 2026-07-14) */
             font-size: 11px; font-family: Arial, sans-serif;
             overflow: hidden;
         }
         .uw-header-left {
-            background: #2a4475; padding: 6px 14px;
+            background: #2a4475; padding: 2px 14px;
             display: flex; flex-direction: column; justify-content: center;
             border-right: 1px solid #0a1d3a; min-width: 96px;
         }
         .uw-header-left-title { font-size: 10px; font-weight: 700; line-height: 1.2; letter-spacing: 0.3px; }
         .uw-header-iteminfo {
-            padding: 6px 14px; border-right: 1px solid #0a1d3a;
+            padding: 3px 14px; border-right: 1px solid #0a1d3a;
             display: flex; flex-direction: column; justify-content: center;
         }
         .uw-header-iteminfo .uw-item { font-size: 12px; color: #fff; }
@@ -1360,7 +1360,7 @@
        bar sits at the bottom of the scroll area when content is short and flows
        after the content (scroll to reach it) once it overflows -- never pinned
        over the viewport. Touch/phone layouts keep the pinned bar. */
-    html:not(.ma-phone) .nbme-skin.uw-skin { grid-template-rows: 50px 1fr !important; }
+    html:not(.ma-phone) .nbme-skin.uw-skin { grid-template-rows: 40px 1fr !important; }
     html:not(.ma-phone) .uw-main { display: flex !important; flex-direction: column !important; }
     html:not(.ma-phone) .uw-main > .uw-bottom-bar { margin-top: auto !important; }
     html:not(.ma-phone) .uw-main { padding-bottom: 0 !important; }
@@ -5330,6 +5330,20 @@ html.ma-phone .uw-main { padding-top: 5px; }
 html.ma-phone .uw-mark-row { margin-bottom: 5px; }
 html.ma-phone .ma-mark-copy { margin-bottom: 5px; }
 html.ma-phone .ma-mark-copy > .uw-mark-row { margin-bottom: 0; }
+</style>
+<!-- ma-hl-palette-bigger (2026-07-14): on the phone layout the bottom-pinned
+     highlight palette was finger-small (user request: ~1.5x bigger). Scales
+     the pill's metrics ~1.5x on both engines' palettes (NBME #ma-hl-palette:
+     26px swatches / 12px Clear; UWorld #highlight-palette: 20px swatches /
+     12px Remove). Colors, bottom pinning and tap behavior untouched; phone
+     layout only (html.ma-phone) - desktop palettes keep their size. -->
+<style id="ma-hl-palette-bigger">
+html.ma-phone #ma-hl-palette { padding: 12px 18px; gap: 12px; }
+html.ma-phone .ma-hl-btn { width: 39px; height: 39px; border-width: 4.5px; }
+html.ma-phone .ma-hl-clear { font-size: 18px; height: 36px; margin-left: 9px; padding-left: 18px; }
+html.ma-phone #highlight-palette { padding: 9px 15px; gap: 9px; }
+html.ma-phone #highlight-palette .hp-color { width: 30px; height: 30px; border-width: 3px; }
+html.ma-phone #highlight-palette .hp-remove { font-size: 18px; margin-left: 6px; }
 </style>
 </body>
 </html>
