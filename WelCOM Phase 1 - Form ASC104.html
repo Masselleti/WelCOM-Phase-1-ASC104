@@ -16,7 +16,7 @@
                 var btn = document.getElementById('dark-toggle');
                 if (btn) btn.textContent = e.matches ? '☀️' : '🌙';
                 var meta = document.querySelector('meta[name="theme-color"]');
-                if (meta) meta.setAttribute('content', e.matches ? '#0f172a' : '#21AED9');
+                if (meta) meta.setAttribute('content', e.matches ? '#0f172a' : '#1d4e75');
             };
             if (mq.addEventListener) mq.addEventListener('change', applySystemTheme);
             else if (mq.addListener) mq.addListener(applySystemTheme);
@@ -24,7 +24,7 @@
     })();
     </script>
     <meta charset="UTF-8">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='54' font-size='82' text-anchor='middle' dominant-baseline='central' fill='%2321AED9'>⚕</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='54' font-size='82' text-anchor='middle' dominant-baseline='central' fill='%231d4e75'>⚕</text></svg>">
     <script>
     /* === Ephemeral session + persistent highlights & question marks (added by request) ===
        HIGHLIGHTS AND QUESTION MARKS/FLAGS PERSIST PERMANENTLY across sessions:
@@ -88,7 +88,7 @@
     })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#21AED9">
+    <meta name="theme-color" content="#1d4e75">
     <title>WelCOM Phase 1 - Form ASC104</title>
     <style>
         /* ========================================================
@@ -190,7 +190,7 @@
 
         body:has(#learning-mode.active) .unified-hero, body:has(#exam-mode.active) .unified-hero { display: none !important; }
 
-        .unified-hero { background: radial-gradient(circle at 10% -20%, rgba(33, 174, 217, .35), transparent 60%), linear-gradient(145deg, #21AED9 0%, #157999 100%); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 48px 60px; border-radius: 0 0 32px 32px; margin-bottom: 40px; box-shadow: var(--elev-2); gap: 30px; margin-top: 0; }
+        .unified-hero { background: radial-gradient(circle at 10% -20%, rgba(53, 122, 174, .35), transparent 60%), linear-gradient(145deg, #2a6694 0%, #1d4e75 100%); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 48px 60px; border-radius: 0 0 32px 32px; margin-bottom: 40px; box-shadow: var(--elev-2); gap: 30px; margin-top: 0; }
         .hero-text h1 { font-size: 2.2em; margin-bottom: 12px; color: #fff; letter-spacing: -0.5px; }
         .hero-text p { font-size: 1.1em; color: #e0f2fe; opacity: 0.9; max-width: 600px; line-height: 1.6; }
 
@@ -206,12 +206,12 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
         /* DASHBOARD */
-        .dashboard-section-title { font-size: 1.2em; color: var(--primary); margin: 30px 0 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+        .dashboard-section-title { font-size: 1.2em; color: var(--nbme-header-bot); margin: 30px 0 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid var(--border); padding-bottom: 8px; html.dark & { color: #6ea8d8; } }
         .main-menu { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 40px; }
         .menu-card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 32px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: var(--elev-1); display: flex; flex-direction: column; position: relative; overflow: hidden; text-align: left; }
         .menu-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 0; transition: height 0.2s ease; }
         .learning-card::before { background: linear-gradient(90deg, #2bb396, #5ce0c3); }
-        .exam-card::before { background: linear-gradient(90deg, #21AED9, #4ac6ec); }
+        .exam-card::before { background: linear-gradient(90deg, #1d4e75, #2a6694); }
         .resume-card::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
         .flag-card::before { background: linear-gradient(90deg, #ef4444, #f87171); }
         .menu-card:hover, .menu-card:active { transform: translateY(-4px); box-shadow: var(--elev-2); }
@@ -219,7 +219,7 @@
 
         .card-icon-wrap { width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 20px; transition: transform 0.3s ease; }
         .learning-card .card-icon-wrap { background: rgba(43, 179, 150, 0.1); color: #2bb396; }
-        .exam-card .card-icon-wrap { background: rgba(33, 174, 217, 0.1); color: var(--primary); }
+        .exam-card .card-icon-wrap { background: rgba(29, 78, 117, 0.1); color: var(--nbme-header-bot); html.dark & { background: rgba(110, 168, 216, 0.12); color: #6ea8d8; } }
         .resume-card .card-icon-wrap { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
         .flag-card .card-icon-wrap { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
         .menu-card:hover .card-icon-wrap { transform: scale(1.1) rotate(-5deg); }
@@ -228,7 +228,7 @@
         .menu-card p { color: var(--muted); font-size: 0.95em; line-height: 1.6; margin-bottom: 24px; flex: 1; }
         .card-action { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.95em; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
         .learning-card .card-action { color: #2bb396; }
-        .exam-card .card-action { color: var(--primary); html.dark & { color: #4ac6ec; } }
+        .exam-card .card-action { color: var(--nbme-header-bot); html.dark & { color: #6ea8d8; } }
         .resume-card .card-action { color: #f59e0b; }
         .flag-card .card-action { color: #ef4444; }
         .menu-card:hover .card-action { gap: 14px; }
@@ -1711,7 +1711,7 @@
                 document.documentElement.classList.remove('dark');
                 localStorage.setItem('ma_theme', 'light');
                 document.getElementById('dark-toggle').textContent = '🌙';
-                document.querySelector('meta[name="theme-color"]').setAttribute("content", "#21AED9");
+                document.querySelector('meta[name="theme-color"]').setAttribute("content", "#1d4e75");
             }
         });
 
