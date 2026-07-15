@@ -1364,6 +1364,13 @@
     html:not(.ma-phone) .uw-main { display: flex !important; flex-direction: column !important; }
     html:not(.ma-phone) .uw-main > .uw-bottom-bar { margin-top: auto !important; }
     html:not(.ma-phone) .uw-main { padding-bottom: 0 !important; }
+    /* Full-bleed (2026-07-14): cancel .uw-main's horizontal padding (14px 22px;
+       10px 12px at <=768px) so the relocated bar reaches the pane edges with no
+       cut-off background slivers beside it (visible in Reverse mode). */
+    html:not(.ma-phone) .uw-main > .uw-bottom-bar { margin-left: -22px !important; margin-right: -22px !important; }
+}
+@media (hover: hover) and (pointer: fine) and (max-width: 768px) {
+    html:not(.ma-phone) .uw-main > .uw-bottom-bar { margin-left: -12px !important; margin-right: -12px !important; }
 }
 /* Keep Mark Question + Copy on one row when .uw-main becomes a flex column. */
 .ma-mark-copy { display: flex; align-items: center; }
@@ -5310,5 +5317,19 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
     else arm();
 })();
 </script>
+<!-- ma-mark-copy-tight (2026-07-14): on the phone layout the Mark/Copy row sat
+     in the full 10px .uw-main top padding and kept a 12px gap to the stem
+     (user request: cut the top whitespace ~50% and the bottom ~60% -> 5px
+     both). Phone layout only (html.ma-phone) - desktop and iPad spacing
+     untouched. The bottom margin lives on the bare row OR on the
+     ma-touch-reveal wrapper once the strip wraps it (the wrapper zeroes the
+     row's own margin) - override both at 5px and re-assert the wrapper's
+     child zero at higher specificity so the two never stack. -->
+<style id="ma-mark-copy-tight">
+html.ma-phone .uw-main { padding-top: 5px; }
+html.ma-phone .uw-mark-row { margin-bottom: 5px; }
+html.ma-phone .ma-mark-copy { margin-bottom: 5px; }
+html.ma-phone .ma-mark-copy > .uw-mark-row { margin-bottom: 0; }
+</style>
 </body>
 </html>
