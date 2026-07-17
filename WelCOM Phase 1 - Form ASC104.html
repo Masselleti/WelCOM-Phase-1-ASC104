@@ -1323,6 +1323,143 @@
 .commentary-content ol, #question-review-container ol, .question-stem ol { list-style-type: decimal; }
 
 </style>
+<style id="ma-lv-css">
+/* ===== Lab Values modal (USMLE-style reference popup) ===== */
+.lv-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 9999;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.lv-overlay.is-open { display: flex; }
+.lv-window {
+    background: #fff;
+    width: min(960px, 96vw);
+    height: min(720px, 88vh);
+    display: flex; flex-direction: column;
+    border: 1px solid #777;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    color: #1a1a1a;
+}
+.lv-titlebar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #d0d0d0; padding: 8px 14px;
+    border-bottom: 1px solid #999;
+    font-size: 18px; font-weight: 700;
+}
+.lv-title { display: flex; align-items: center; gap: 8px; color: #1a1a1a; }
+.lv-icon { font-size: 18px; }
+.lv-close-btn {
+    background: transparent; border: none; font-size: 22px; cursor: pointer;
+    color: #333; line-height: 1; padding: 0 6px;
+}
+.lv-close-btn:hover { color: #000; }
+.lv-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: #fff;
+    border-bottom: 1px solid #e0e0e0; gap: 12px;
+}
+.lv-search {
+    flex: 0 0 220px; height: 30px; padding: 4px 8px;
+    border: 1px solid #888; border-radius: 0; font-size: 13px;
+}
+.lv-si {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #1f72b8; cursor: pointer;
+}
+.lv-si input { margin: 0; }
+.lv-si span { text-decoration: underline; }
+.lv-tabs {
+    display: flex; gap: 4px; padding: 0 14px;
+    background: #fff; border-bottom: 1px solid #b6b6b6;
+}
+.lv-tab {
+    background: #fff; border: 1px solid #b6b6b6; border-bottom: none;
+    padding: 6px 14px; font-size: 13px; cursor: pointer;
+    color: #1a1a1a; border-radius: 4px 4px 0 0;
+    margin-bottom: -1px;
+}
+.lv-tab:hover { background: #f3f3f3; }
+.lv-tab.is-active {
+    background: #e6e9f5;
+    font-weight: 600;
+    border-bottom: 1px solid #e6e9f5;
+}
+.lv-panel {
+    display: none;
+    background: #e6e9f5;
+    overflow-y: auto;
+    padding: 0;
+    flex: 1 1 auto;
+}
+.lv-panel.is-active { display: block; }
+.lv-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px; color: #1a1a1a;
+}
+.lv-table thead th {
+    text-align: left; padding: 10px 14px;
+    font-weight: 700; font-size: 14px;
+    border-bottom: 1px solid #cfd2e0;
+    background: #e6e9f5;
+    position: sticky; top: 0;
+}
+.lv-table thead th:nth-child(2) { color: #1f72b8; }
+.lv-table tbody td {
+    padding: 6px 14px;
+    border-bottom: 1px dotted #c5c8d4;
+    vertical-align: top;
+}
+.lv-table tbody td:first-child { width: 50%; }
+.lv-table tbody tr:hover td { background: rgba(255,255,255,0.4); }
+.lv-table .lv-group {
+    padding-left: 14px;
+    font-weight: 600;
+    color: #1f72b8;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.lv-table .lv-indent { padding-left: 30px; }
+.lv-table .lv-indent-2 { padding-left: 46px; }
+.lv-table tbody tr.lv-hidden { display: none; }
+/* SI Reference Intervals toggle: each value cell holds a conventional span
+   and an SI span; the checkbox swaps which one shows. */
+.lv-table .lv-s { display: none; }
+.lv-window.lv-show-si .lv-table .lv-c { display: none; }
+.lv-window.lv-show-si .lv-table .lv-s { display: inline; }
+.lv-table .lv-na { color: #9aa3ad; }
+/* The Lab Values popup follows the exam theme: nbmeOpenLabValues() toggles
+   .lv-dark on the overlay at open time from the active question view's
+   reverse-color state (else the app dark mode). Pin --text inside the popup
+   so the global "p,span,li,td,th,small { color: var(--text) }" rule can't
+   leak the app theme in and leave the table text unreadable. */
+.lv-overlay { --text: #1a1a1a !important; }
+.lv-overlay.lv-dark { --text: #e8ecf2 !important; }
+/* Dark skin for the popup (matches the reverse-color exam palette) */
+.lv-overlay.lv-dark .lv-window { background: #23272e; border-color: #4a5160; color: #e8ecf2; color-scheme: dark; }
+.lv-overlay.lv-dark .lv-titlebar { background: #343a44; border-bottom-color: #4a5160; }
+.lv-overlay.lv-dark .lv-title { color: #e8ecf2; }
+.lv-overlay.lv-dark .lv-close-btn { color: #c8cfd9; }
+.lv-overlay.lv-dark .lv-close-btn:hover { color: #fff; }
+.lv-overlay.lv-dark .lv-toolbar { background: #23272e; border-bottom-color: #3a404c; }
+.lv-overlay.lv-dark .lv-search { background: #1a1e24; border-color: #5a6270; color: #e8ecf2; }
+.lv-overlay.lv-dark .lv-si { color: #6fb3e0; }
+.lv-overlay.lv-dark .lv-tabs { background: #23272e; border-bottom-color: #4a5160; }
+.lv-overlay.lv-dark .lv-tab { background: #23272e; border-color: #4a5160; color: #e8ecf2; }
+.lv-overlay.lv-dark .lv-tab:hover { background: #2c313a; }
+.lv-overlay.lv-dark .lv-tab.is-active { background: #2f3542; border-bottom-color: #2f3542; }
+.lv-overlay.lv-dark .lv-panel { background: #2f3542; }
+.lv-overlay.lv-dark .lv-table { color: #e8ecf2; }
+.lv-overlay.lv-dark .lv-table thead th { background: #2f3542; border-bottom-color: #4a5160; }
+.lv-overlay.lv-dark .lv-table thead th:nth-child(2) { color: #6fb3e0; }
+.lv-overlay.lv-dark .lv-table tbody td { border-bottom-color: #454c5a; }
+.lv-overlay.lv-dark .lv-table tbody tr:hover td { background: rgba(255,255,255,0.06); }
+.lv-overlay.lv-dark .lv-table .lv-group { color: #6fb3e0; }
+.lv-overlay.lv-dark .lv-table .lv-na { color: #8a93a3; }
+</style>
 <style id="ma-hl-darktext-fix">/* HL-DARKTEXT-FIX: user text highlights use pale pastel backgrounds. In
    reverse (dark) mode the reverse-color "* { color: light }" rules repainted
    the highlighted text light-on-pastel (unreadable), and ".option-text *
@@ -1517,41 +1654,442 @@
         </div>
     </div>
 
-    <div class="ma-modal-overlay" id="modal-labs">
-        <div class="ma-modal-card">
-            <div class="ma-modal-header">
-                <h3>🧪 Normal Laboratory Values</h3>
-                <button class="ma-modal-close" onclick="document.getElementById('modal-labs').classList.remove('show')">&times;</button>
-            </div>
-            <div class="ma-modal-body" style="padding: 16px;">
-                <div class="lab-table-wrapper">
-                    <table class="lab-table">
-                        <thead><tr><th>Test</th><th>Reference Range</th></tr></thead>
-                        <tbody>
-                            <tr><td colspan="2" style="background:var(--bg); color:var(--primary); font-weight:800; text-align:center; font-size:12px;">COMPLETE BLOOD COUNT</td></tr>
-                            <tr><td>WBC Count</td><td>4,500 - 11,000 /mcL</td></tr>
-                            <tr><td>Hemoglobin (Male)</td><td>13.5 - 17.5 g/dL</td></tr>
-                            <tr><td>Hemoglobin (Female)</td><td>12.0 - 15.5 g/dL</td></tr>
-                            <tr><td>Platelets</td><td>150,000 - 400,000 /mcL</td></tr>
-                            <tr><td colspan="2" style="background:var(--bg); color:var(--primary); font-weight:800; text-align:center; font-size:12px;">BASIC METABOLIC PANEL</td></tr>
-                            <tr><td>Sodium (Na+)</td><td>135 - 145 mEq/L</td></tr>
-                            <tr><td>Potassium (K+)</td><td>3.5 - 5.0 mEq/L</td></tr>
-                            <tr><td>Chloride (Cl-)</td><td>98 - 106 mEq/L</td></tr>
-                            <tr><td>Bicarbonate (HCO3-)</td><td>22 - 28 mEq/L</td></tr>
-                            <tr><td>BUN</td><td>7 - 20 mg/dL</td></tr>
-                            <tr><td>Creatinine (Cr)</td><td>0.6 - 1.2 mg/dL</td></tr>
-                            <tr><td>Glucose (Fasting)</td><td>70 - 100 mg/dL</td></tr>
-                            <tr><td>Calcium (Ca2+)</td><td>8.4 - 10.2 mg/dL</td></tr>
-                            <tr><td colspan="2" style="background:var(--bg); color:var(--primary); font-weight:800; text-align:center; font-size:12px;">ARTERIAL BLOOD GAS</td></tr>
-                            <tr><td>pH</td><td>7.35 - 7.45</td></tr>
-                            <tr><td>PaCO2</td><td>35 - 45 mm Hg</td></tr>
-                            <tr><td>PaO2</td><td>80 - 100 mm Hg</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div class="lv-overlay" id="lv-overlay" onclick="if(event.target.id==='lv-overlay') nbmeCloseLabValues()">
+		<div class="lv-window" role="dialog" aria-modal="true" aria-labelledby="lv-title">
+			<div class="lv-titlebar">
+				<div class="lv-title" id="lv-title"><span class="lv-icon">🧪</span> Lab Values</div>
+				<button class="lv-close-btn" type="button" onclick="nbmeCloseLabValues()" aria-label="Close">×</button>
+			</div>
+			<div class="lv-toolbar">
+				<input type="text" class="lv-search" id="lv-search" placeholder="" aria-label="Search lab values">
+				<label class="lv-si"><input type="checkbox" id="lv-si"> <span>SI Reference Intervals</span></label>
+			</div>
+			<div class="lv-tabs" role="tablist">
+				<button class="lv-tab is-active" data-tab="serum" role="tab" aria-selected="true">Serum</button>
+				<button class="lv-tab" data-tab="csf" role="tab" aria-selected="false">Cerebrospinal</button>
+				<button class="lv-tab" data-tab="blood" role="tab" aria-selected="false">Blood</button>
+				<button class="lv-tab" data-tab="urine" role="tab" aria-selected="false">Urine and BMI</button>
+			</div>
+
+			<div class="lv-panel is-active" data-panel="serum">
+				<table class="lv-table">
+					<thead><tr><th>Serum</th><th>Reference Range</th></tr></thead>
+					<tbody>
+						<tr><td>Alanine aminotransferase (ALT)</td><td>10-40 U/L</td></tr>
+						<tr><td>Aspartate aminotransferase (AST)</td><td>12-38 U/L</td></tr>
+						<tr><td>Alkaline phosphatase</td><td>25-100 U/L</td></tr>
+						<tr><td>Amylase</td><td>25-125 U/L</td></tr>
+						<tr><td colspan="2" class="lv-group">Bilirubin</td></tr>
+						<tr><td class="lv-indent">Total</td><td>0.1-1.0 mg/dL</td></tr>
+						<tr><td class="lv-indent">Direct</td><td>0.0-0.3 mg/dL</td></tr>
+						<tr><td>Calcium</td><td>8.4-10.2 mg/dL</td></tr>
+						<tr><td colspan="2" class="lv-group">Cholesterol</td></tr>
+						<tr><td class="lv-indent">Total</td><td></td></tr>
+						<tr><td class="lv-indent-2">Normal</td><td>&lt;200 mg/dL</td></tr>
+						<tr><td class="lv-indent-2">High</td><td>&gt;240 mg/dL</td></tr>
+						<tr><td class="lv-indent">HDL</td><td>40-60 mg/dL</td></tr>
+						<tr><td class="lv-indent">LDL</td><td>&lt;160 mg/dL</td></tr>
+						<tr><td colspan="2" class="lv-group">Triglycerides</td></tr>
+						<tr><td class="lv-indent">Normal</td><td>&lt;150 mg/dL</td></tr>
+						<tr><td class="lv-indent">Borderline</td><td>151-199 mg/dL</td></tr>
+						<tr><td colspan="2" class="lv-group">Cortisol</td></tr>
+						<tr><td class="lv-indent">0800 h</td><td>5-23 µg/dL</td></tr>
+						<tr><td class="lv-indent">1600 h</td><td>3-15 µg/dL</td></tr>
+						<tr><td class="lv-indent">2000 h</td><td>&lt;50% of 0800 h</td></tr>
+						<tr><td colspan="2" class="lv-group">Creatine kinase</td></tr>
+						<tr><td class="lv-indent">Male</td><td>25-90 U/L</td></tr>
+						<tr><td class="lv-indent">Female</td><td>10-70 U/L</td></tr>
+						<tr><td>Creatinine</td><td>0.6-1.2 mg/dL</td></tr>
+						<tr><td>Urea nitrogen</td><td>7-18 mg/dL</td></tr>
+						<tr><td colspan="2" class="lv-group">Electrolytes, serum</td></tr>
+						<tr><td class="lv-indent">Sodium (Na<sup>+</sup>)</td><td>136-146 mEq/L</td></tr>
+						<tr><td class="lv-indent">Potassium (K<sup>+</sup>)</td><td>3.5-5.0 mEq/L</td></tr>
+						<tr><td class="lv-indent">Chloride (Cl<sup>-</sup>)</td><td>95-105 mEq/L</td></tr>
+						<tr><td class="lv-indent">Bicarbonate (HCO<sub>3</sub><sup>-</sup>)</td><td>22-28 mEq/L</td></tr>
+						<tr><td class="lv-indent">Magnesium (Mg<sup>2+</sup>)</td><td>1.5-2.0 mEq/L</td></tr>
+						<tr><td colspan="2" class="lv-group">Ferritin</td></tr>
+						<tr><td class="lv-indent">Male</td><td>20-250 ng/mL</td></tr>
+						<tr><td class="lv-indent">Female</td><td>10-120 ng/mL</td></tr>
+						<tr><td colspan="2" class="lv-group">Follicle-stimulating hormone</td></tr>
+						<tr><td class="lv-indent">Male</td><td>4-25 mIU/mL</td></tr>
+						<tr><td class="lv-indent">Female</td><td></td></tr>
+						<tr><td class="lv-indent-2">premenopause</td><td>4-30 mIU/mL</td></tr>
+						<tr><td class="lv-indent-2">midcycle peak</td><td>10-90 mIU/mL</td></tr>
+						<tr><td class="lv-indent-2">postmenopause</td><td>40-250 mIU/mL</td></tr>
+						<tr><td colspan="2" class="lv-group">Glucose</td></tr>
+						<tr><td class="lv-indent">Fasting</td><td>70-110 mg/dL</td></tr>
+						<tr><td class="lv-indent">Random, non-fasting</td><td>&lt;140 mg/dL</td></tr>
+						<tr><td colspan="2" class="lv-group">Growth hormone- arginine stimulation</td></tr>
+						<tr><td class="lv-indent">Fasting</td><td>&lt;5 ng/mL</td></tr>
+						<tr><td class="lv-indent">Provocative stimuli</td><td>&gt;7 ng/mL</td></tr>
+						<tr><td colspan="2" class="lv-group">Iron</td></tr>
+						<tr><td class="lv-indent">Male</td><td>65-175 µg/dL</td></tr>
+						<tr><td class="lv-indent">Female</td><td>50-170 µg/dL</td></tr>
+						<tr><td>Total iron-binding capacity</td><td>250-400 µg/dL</td></tr>
+						<tr><td>Transferrin</td><td>200-360 mg/dL</td></tr>
+						<tr><td>Lactate dehydrogenase</td><td>45-200 U/L</td></tr>
+						<tr><td colspan="2" class="lv-group">Luteinizing hormone</td></tr>
+						<tr><td class="lv-indent">Male</td><td>6-23 mIU/mL</td></tr>
+						<tr><td class="lv-indent">Female</td><td></td></tr>
+						<tr><td class="lv-indent-2">follicular phase</td><td>5-30 mIU/mL</td></tr>
+						<tr><td class="lv-indent-2">midcycle</td><td>75-150 mIU/mL</td></tr>
+						<tr><td class="lv-indent-2">postmenopause</td><td>30-200 mIU/mL</td></tr>
+						<tr><td>Osmolality</td><td>275-295 mOsmol/kg H<sub>2</sub>O</td></tr>
+						<tr><td>Intact parathyroid hormone (PTH)</td><td>10-60 pg/mL</td></tr>
+						<tr><td>Phosphorus (inorganic)</td><td>3.0-4.5 mg/dL</td></tr>
+						<tr><td colspan="2" class="lv-group">Prolactin (hPRL)</td></tr>
+						<tr><td class="lv-indent">Male</td><td>&lt;17 ng/mL</td></tr>
+						<tr><td class="lv-indent">Female</td><td>&lt;25 ng/mL</td></tr>
+						<tr><td colspan="2" class="lv-group">Proteins</td></tr>
+						<tr><td class="lv-indent">Total</td><td>6.0-7.8 g/dL</td></tr>
+						<tr><td class="lv-indent">Albumin</td><td>3.5-5.5 g/dL</td></tr>
+						<tr><td class="lv-indent">Globulin</td><td>2.3-3.5 g/dL</td></tr>
+						<tr><td>Troponin I</td><td>&lt;0.04 ng/dL</td></tr>
+						<tr><td>TSH</td><td>0.4-4.0 µU/mL</td></tr>
+						<tr><td>Thyroidal iodine (<sup>123</sup>I) uptake</td><td>8%-30% of administered dose/24 h</td></tr>
+						<tr><td>Thyroxine (T<sub>4</sub>)</td><td>5-12 µg/dL</td></tr>
+						<tr><td>Free (T<sub>4</sub>)</td><td>0.9-1.7 ng/dL</td></tr>
+						<tr><td>Triiodothyronine (T<sub>3</sub>) (RIA)</td><td>100-200 ng/dL</td></tr>
+						<tr><td>Triiodothyronine (T<sub>3</sub>) resin uptake</td><td>25%-35%</td></tr>
+						<tr><td>Uric acid</td><td>3.0-8.2 mg/dL</td></tr>
+						<tr><td colspan="2" class="lv-group">Immunoglobulins</td></tr>
+						<tr><td class="lv-indent">IgA</td><td>76-390 mg/dL</td></tr>
+						<tr><td class="lv-indent">IgE</td><td>0-380 IU/mL</td></tr>
+						<tr><td class="lv-indent">IgG</td><td>650-1500 mg/dL</td></tr>
+						<tr><td class="lv-indent">IgM</td><td>50-300 mg/dL</td></tr>
+						<tr><td colspan="2" class="lv-group">Gases, arterial blood (room air)</td></tr>
+						<tr><td class="lv-indent">pH</td><td>7.35-7.45</td></tr>
+						<tr><td class="lv-indent">P<sub>CO2</sub></td><td>33-45 mm Hg</td></tr>
+						<tr><td class="lv-indent">P<sub>O2</sub></td><td>75-105 mm Hg</td></tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="lv-panel" data-panel="csf">
+				<table class="lv-table">
+					<thead><tr><th>Cerebrospinal Fluid</th><th>Reference Range</th></tr></thead>
+					<tbody>
+						<tr><td>Cell count</td><td>0-5/mm<sup>3</sup></td></tr>
+						<tr><td>Chloride</td><td>118-132 mEq/L</td></tr>
+						<tr><td>Gamma globulin</td><td>3%-12% total proteins</td></tr>
+						<tr><td>Glucose</td><td>40-70 mg/dL</td></tr>
+						<tr><td>Pressure</td><td>70-180 mm H<sub>2</sub>O</td></tr>
+						<tr><td>Proteins, total</td><td>&lt;40 mg/dL</td></tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="lv-panel" data-panel="blood">
+				<table class="lv-table">
+					<thead><tr><th>Hematologic</th><th>Reference Range</th></tr></thead>
+					<tbody>
+						<tr><td colspan="2" class="lv-group">Erythrocyte count</td></tr>
+						<tr><td class="lv-indent">Male</td><td>4.3-5.9 million/mm<sup>3</sup></td></tr>
+						<tr><td class="lv-indent">Female</td><td>3.5-5.5 million/mm<sup>3</sup></td></tr>
+						<tr><td colspan="2" class="lv-group">Erythrocyte sedimentation rate (Westergren)</td></tr>
+						<tr><td class="lv-indent">Male</td><td>0-15 mm/h</td></tr>
+						<tr><td class="lv-indent">Female</td><td>0-20 mm/h</td></tr>
+						<tr><td colspan="2" class="lv-group">Hematocrit</td></tr>
+						<tr><td class="lv-indent">Male</td><td>41%-53%</td></tr>
+						<tr><td class="lv-indent">Female</td><td>36%-46%</td></tr>
+						<tr><td colspan="2" class="lv-group">Hemoglobin, blood</td></tr>
+						<tr><td class="lv-indent">Male</td><td>13.5-17.5 g/dL</td></tr>
+						<tr><td class="lv-indent">Female</td><td>12.0-16.0 g/dL</td></tr>
+						<tr><td>Hemoglobin A<sub>1c</sub></td><td>≤6%</td></tr>
+						<tr><td>Hemoglobin, plasma</td><td>&lt;4 mg/dL</td></tr>
+						<tr><td>Leukocyte count (WBC)</td><td>4500-11,000/mm<sup>3</sup></td></tr>
+						<tr><td>Neutrophils, segmented</td><td>54%-62%</td></tr>
+						<tr><td>Neutrophils, bands</td><td>3%-5%</td></tr>
+						<tr><td>Eosinophils</td><td>1%-3%</td></tr>
+						<tr><td>Basophils</td><td>0%-0.75%</td></tr>
+						<tr><td>Lymphocytes</td><td>25%-33%</td></tr>
+						<tr><td>Monocytes</td><td>3%-7%</td></tr>
+						<tr><td>CD4+ T-lymphocyte count</td><td>≥500/mm<sup>3</sup></td></tr>
+						<tr><td>Platelet count</td><td>150,000-400,000/mm<sup>3</sup></td></tr>
+						<tr><td>Reticulocyte count</td><td>0.5%-1.5%</td></tr>
+						<tr><td>D-Dimer</td><td>≤250 ng/mL</td></tr>
+						<tr><td>Partial thromboplastin time (PTT) (activated)</td><td>25-40 seconds</td></tr>
+						<tr><td>Prothrombin time (PT)</td><td>11-15 seconds</td></tr>
+						<tr><td>Mean corpuscular hemoglobin (MCH)</td><td>25-35 pg/cell</td></tr>
+						<tr><td>Mean corpuscular hemoglobin concentration (MCHC)</td><td>31%-36% Hb/cell</td></tr>
+						<tr><td>Mean corpuscular volume (MCV)</td><td>80-100 µm<sup>3</sup></td></tr>
+						<tr><td colspan="2" class="lv-group">Volume</td></tr>
+						<tr><td class="lv-indent">Plasma</td><td></td></tr>
+						<tr><td class="lv-indent-2">Male</td><td>25-43 mL/kg</td></tr>
+						<tr><td class="lv-indent-2">Female</td><td>28-45 mL/kg</td></tr>
+						<tr><td class="lv-indent">Red cell</td><td></td></tr>
+						<tr><td class="lv-indent-2">Male</td><td>20-36 mL/kg</td></tr>
+						<tr><td class="lv-indent-2">Female</td><td>19-31 mL/kg</td></tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="lv-panel" data-panel="urine">
+				<table class="lv-table">
+					<thead><tr><th>Urine</th><th>Reference Range</th></tr></thead>
+					<tbody>
+						<tr><td>Calcium</td><td>100-300 mg/24 h</td></tr>
+						<tr><td colspan="2" class="lv-group">Creatinine clearance</td></tr>
+						<tr><td class="lv-indent">Male</td><td>97-137 mL/min</td></tr>
+						<tr><td class="lv-indent">Female</td><td>88-128 mL/min</td></tr>
+						<tr><td>Osmolality</td><td>50-1200 mOsmol/kg H<sub>2</sub>O</td></tr>
+						<tr><td>Oxalate</td><td>8-40 µg/mL</td></tr>
+						<tr><td>Proteins, total</td><td>&lt;150 mg/24 h</td></tr>
+						<tr><td colspan="2" class="lv-group">17-Hydroxycorticosteroids</td></tr>
+						<tr><td class="lv-indent">Male</td><td>3.0-10.0 mg/24 h</td></tr>
+						<tr><td class="lv-indent">Female</td><td>2.0-8.0 mg/24 h</td></tr>
+						<tr><td colspan="2" class="lv-group">17-Ketosteroids, total</td></tr>
+						<tr><td class="lv-indent">Male</td><td>8-20 mg/24 h</td></tr>
+						<tr><td class="lv-indent">Female</td><td>6-15 mg/24 h</td></tr>
+						<tr><td class="lv-group"><strong>Body Mass Index (BMI)</strong></td><td>Adult: 19-25 kg/m<sup>2</sup></td></tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+    <script>
+// ===== Lab Values modal: open/close, tab switching, search =====
+        function nbmeOpenLabValues() {
+            const overlay = document.getElementById('lv-overlay');
+            if (!overlay) return;
+            // Theme the popup to what it opens over: the active question view's
+            // reverse-color state (same element the Reverse Color tool targets),
+            // else the app-level dark mode.
+            const skin = document.querySelector('.uw-skin, .nbme-skin');
+            const dark = skin ? skin.classList.contains('nbme-reverse')
+                              : document.documentElement.classList.contains('dark');
+            overlay.classList.toggle('lv-dark', dark);
+            overlay.classList.add('is-open');
+            const search = document.getElementById('lv-search');
+            if (search) { search.value = ''; lvFilterRows(''); setTimeout(() => search.focus(), 0); }
+        }
+        function nbmeCloseLabValues() {
+            const overlay = document.getElementById('lv-overlay');
+            if (overlay) overlay.classList.remove('is-open');
+        }
+        function lvSwitchTab(tabName) {
+            document.querySelectorAll('.lv-tab').forEach(t => {
+                const on = t.dataset.tab === tabName;
+                t.classList.toggle('is-active', on);
+                t.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            document.querySelectorAll('.lv-panel').forEach(p => {
+                p.classList.toggle('is-active', p.dataset.panel === tabName);
+            });
+        }
+        function lvFilterRows(query) {
+            const q = (query || '').trim().toLowerCase();
+            document.querySelectorAll('.lv-panel.is-active .lv-table tbody tr').forEach(tr => {
+                if (!q) { tr.classList.remove('lv-hidden'); return; }
+                const text = tr.textContent.toLowerCase();
+                tr.classList.toggle('lv-hidden', !text.includes(q));
+            });
+        }
+        document.querySelectorAll('.lv-tab').forEach(t => {
+            t.addEventListener('click', () => lvSwitchTab(t.dataset.tab));
+        });
+        (function() {
+            const search = document.getElementById('lv-search');
+            if (search) search.addEventListener('input', e => lvFilterRows(e.target.value));
+        })();
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const overlay = document.getElementById('lv-overlay');
+                if (overlay && overlay.classList.contains('is-open')) nbmeCloseLabValues();
+            }
+        });
+        window.nbmeOpenLabValues = nbmeOpenLabValues;
+        window.nbmeCloseLabValues = nbmeCloseLabValues;
+
+// ===== Lab Values data (official USMLE reference sheet) =====
+        // Each row: {l:label, c:conventional, s:SI, i:indent(1/2), g:group, b:bold}.
+        // SI values come from the official sheet; labs not on that sheet have
+        // s:null and show "—" when SI mode is on (no values are invented).
+        const LV_DATA = {
+            serum: [
+                {l:'Alanine aminotransferase (ALT)',c:'10-40 U/L',s:'10-40 U/L'},
+                {l:'Aspartate aminotransferase (AST)',c:'12-38 U/L',s:'12-38 U/L'},
+                {l:'Alkaline phosphatase',c:'25-100 U/L',s:'25-100 U/L'},
+                {l:'Amylase',c:'25-125 U/L',s:'25-125 U/L'},
+                {l:'Lipase',c:'13-60 U/L',s:'13-60 U/L'},
+                {g:1,l:'Bilirubin'},
+                {i:1,l:'Total',c:'0.1-1.0 mg/dL',s:'2-17 µmol/L'},
+                {i:1,l:'Direct',c:'0.0-0.3 mg/dL',s:'0-5 µmol/L'},
+                {l:'Calcium',c:'8.4-10.2 mg/dL',s:'2.1-2.6 mmol/L'},
+                {g:1,l:'Cholesterol'},
+                {i:1,l:'Total',c:'',s:''},
+                {i:2,l:'Normal',c:'&lt;200 mg/dL',s:'&lt;5.2 mmol/L'},
+                {i:2,l:'High',c:'&gt;240 mg/dL',s:'&gt;6.2 mmol/L'},
+                {i:1,l:'HDL',c:'40-60 mg/dL',s:'1.0-1.6 mmol/L'},
+                {i:1,l:'LDL',c:'&lt;160 mg/dL',s:'&lt;4.2 mmol/L'},
+                {g:1,l:'Triglycerides'},
+                {i:1,l:'Normal',c:'&lt;150 mg/dL',s:'&lt;1.70 mmol/L'},
+                {i:1,l:'Borderline',c:'151-199 mg/dL',s:'1.71-2.25 mmol/L'},
+                {g:1,l:'Cortisol'},
+                {i:1,l:'0800 h',c:'5-23 µg/dL',s:'138-635 nmol/L'},
+                {i:1,l:'1600 h',c:'3-15 µg/dL',s:'82-413 nmol/L'},
+                {i:1,l:'2000 h',c:'&lt;50% of 0800 h',s:'&lt;0.50 of 0800 h'},
+                {g:1,l:'Creatine kinase'},
+                {i:1,l:'Male',c:'25-90 U/L',s:'25-90 U/L'},
+                {i:1,l:'Female',c:'10-70 U/L',s:'10-70 U/L'},
+                {l:'Creatinine',c:'0.6-1.2 mg/dL',s:'53-106 µmol/L'},
+                {l:'Urea nitrogen',c:'7-18 mg/dL',s:'2.5-6.4 mmol/L'},
+                {g:1,l:'Electrolytes, serum'},
+                {i:1,l:'Sodium (Na<sup>+</sup>)',c:'136-146 mEq/L',s:'136-146 mmol/L'},
+                {i:1,l:'Potassium (K<sup>+</sup>)',c:'3.5-5.0 mEq/L',s:'3.5-5.0 mmol/L'},
+                {i:1,l:'Chloride (Cl<sup>-</sup>)',c:'95-105 mEq/L',s:'95-105 mmol/L'},
+                {i:1,l:'Bicarbonate (HCO<sub>3</sub><sup>-</sup>)',c:'22-28 mEq/L',s:'22-28 mmol/L'},
+                {i:1,l:'Magnesium (Mg<sup>2+</sup>)',c:'1.5-2.0 mEq/L',s:'0.75-1.0 mmol/L'},
+                {g:1,l:'Ferritin'},
+                {i:1,l:'Male',c:'20-250 ng/mL',s:'20-250 µg/L'},
+                {i:1,l:'Female',c:'10-120 ng/mL',s:'10-120 µg/L'},
+                {g:1,l:'Follicle-stimulating hormone'},
+                {i:1,l:'Male',c:'4-25 mIU/mL',s:'4-25 IU/L'},
+                {i:1,l:'Female',c:'',s:''},
+                {i:2,l:'premenopause',c:'4-30 mIU/mL',s:'4-30 IU/L'},
+                {i:2,l:'midcycle peak',c:'10-90 mIU/mL',s:'10-90 IU/L'},
+                {i:2,l:'postmenopause',c:'40-250 mIU/mL',s:'40-250 IU/L'},
+                {g:1,l:'Glucose'},
+                {i:1,l:'Fasting',c:'70-100 mg/dL',s:'3.8-5.6 mmol/L'},
+                {i:1,l:'Random, non-fasting',c:'&lt;140 mg/dL',s:'&lt;7.77 mmol/L'},
+                {g:1,l:'Growth hormone - arginine stimulation'},
+                {i:1,l:'Fasting',c:'&lt;5 ng/mL',s:'&lt;5 µg/L'},
+                {i:1,l:'Provocative stimuli',c:'&gt;7 ng/mL',s:'&gt;7 µg/L'},
+                {g:1,l:'Iron'},
+                {i:1,l:'Male',c:'65-175 µg/dL',s:'11.6-31.3 µmol/L'},
+                {i:1,l:'Female',c:'50-170 µg/dL',s:'9.0-30.4 µmol/L'},
+                {l:'Total iron-binding capacity',c:'250-400 µg/dL',s:'44.8-71.6 µmol/L'},
+                {l:'Transferrin',c:'200-360 mg/dL',s:'2.0-3.6 g/L'},
+                {l:'Lactate dehydrogenase',c:'45-200 U/L',s:'45-200 U/L'},
+                {g:1,l:'Luteinizing hormone'},
+                {i:1,l:'Male',c:'6-23 mIU/mL',s:'6-23 IU/L'},
+                {i:1,l:'Female',c:'',s:''},
+                {i:2,l:'follicular phase',c:'5-30 mIU/mL',s:'5-30 IU/L'},
+                {i:2,l:'midcycle',c:'75-150 mIU/mL',s:'75-150 IU/L'},
+                {i:2,l:'postmenopause',c:'30-200 mIU/mL',s:'30-200 IU/L'},
+                {l:'Osmolality',c:'275-295 mOsmol/kg H<sub>2</sub>O',s:'275-295 mOsmol/kg H<sub>2</sub>O'},
+                {l:'Intact parathyroid hormone (PTH)',c:'10-60 pg/mL',s:'10-60 ng/L'},
+                {l:'Phosphorus (inorganic)',c:'3.0-4.5 mg/dL',s:'1.0-1.5 mmol/L'},
+                {g:1,l:'Prolactin (hPRL)'},
+                {i:1,l:'Male',c:'&lt;17 ng/mL',s:'&lt;17 µg/L'},
+                {i:1,l:'Female',c:'&lt;25 ng/mL',s:'&lt;25 µg/L'},
+                {g:1,l:'Proteins'},
+                {i:1,l:'Total',c:'6.0-7.8 g/dL',s:'60-78 g/L'},
+                {i:1,l:'Albumin',c:'3.5-5.5 g/dL',s:'35-55 g/L'},
+                {i:1,l:'Globulin',c:'2.3-3.5 g/dL',s:'23-35 g/L'},
+                {l:'Troponin I',c:'&lt;0.04 ng/mL',s:'≤0.04 µg/L'},
+                {l:'TSH',c:'0.4-4.0 µU/mL',s:'0.4-4.0 mIU/L'},
+                {l:'Thyroidal iodine (<sup>123</sup>I) uptake',c:'8%-30% of administered dose/24 h',s:'0.08-0.30/24 h'},
+                {l:'Thyroxine (T<sub>4</sub>)',c:'5-12 µg/dL',s:'64-155 nmol/L'},
+                {l:'Free (T<sub>4</sub>)',c:'0.9-1.7 ng/dL',s:'12.0-21.9 pmol/L'},
+                {l:'Triiodothyronine (T<sub>3</sub>) (RIA)',c:'100-200 ng/dL',s:'1.5-3.1 nmol/L'},
+                {l:'Triiodothyronine (T<sub>3</sub>) resin uptake',c:'25%-35%',s:'0.25-0.35'},
+                {l:'Uric acid',c:'3.0-8.2 mg/dL',s:'0.18-0.48 mmol/L'},
+                {g:1,l:'Immunoglobulins'},
+                {i:1,l:'IgA',c:'76-390 mg/dL',s:'0.76-3.90 g/L'},
+                {i:1,l:'IgE',c:'0-380 IU/mL',s:'0-380 kIU/L'},
+                {i:1,l:'IgG',c:'650-1500 mg/dL',s:'6.5-15.0 g/L'},
+                {i:1,l:'IgM',c:'50-300 mg/dL',s:'0.5-3.0 g/L'},
+                {g:1,l:'Gases, arterial blood (room air)'},
+                {i:1,l:'pH',c:'7.35-7.45',s:'[H<sup>+</sup>] 36-44 nmol/L'},
+                {i:1,l:'P<sub>CO2</sub>',c:'33-45 mm Hg',s:'4.4-5.9 kPa'},
+                {i:1,l:'P<sub>O2</sub>',c:'75-105 mm Hg',s:'10.0-14.0 kPa'},
+            ],
+            csf: [
+                {l:'Cell count',c:'0-5/mm<sup>3</sup>',s:'0-5 × 10<sup>6</sup>/L'},
+                {l:'Chloride',c:'118-132 mEq/L',s:'118-132 mmol/L'},
+                {l:'Gamma globulin',c:'3%-12% total proteins',s:'0.03-0.12'},
+                {l:'Glucose',c:'40-70 mg/dL',s:'2.2-3.9 mmol/L'},
+                {l:'Pressure',c:'70-180 mm H<sub>2</sub>O',s:'70-180 mm H<sub>2</sub>O'},
+                {l:'Proteins, total',c:'&lt;40 mg/dL',s:'&lt;0.40 g/L'},
+            ],
+            blood: [
+                {g:1,l:'Erythrocyte count'},
+                {i:1,l:'Male',c:'4.3-5.9 million/mm<sup>3</sup>',s:'4.3-5.9 × 10<sup>12</sup>/L'},
+                {i:1,l:'Female',c:'3.5-5.5 million/mm<sup>3</sup>',s:'3.5-5.5 × 10<sup>12</sup>/L'},
+                {g:1,l:'Erythrocyte sedimentation rate (Westergren)'},
+                {i:1,l:'Male',c:'0-15 mm/h',s:'0-15 mm/hr'},
+                {i:1,l:'Female',c:'0-20 mm/h',s:'0-20 mm/hr'},
+                {g:1,l:'Hematocrit'},
+                {i:1,l:'Male',c:'41%-53%',s:'0.41-0.53'},
+                {i:1,l:'Female',c:'36%-46%',s:'0.36-0.46'},
+                {g:1,l:'Hemoglobin, blood'},
+                {i:1,l:'Male',c:'13.5-17.5 g/dL',s:'135-175 g/L'},
+                {i:1,l:'Female',c:'12.0-16.0 g/dL',s:'120-160 g/L'},
+                {l:'Hemoglobin A<sub>1c</sub>',c:'≤6%',s:'≤42 mmol/mol'},
+                {l:'Hemoglobin, plasma',c:'&lt;4 mg/dL',s:'&lt;0.62 µmol/L'},
+                {l:'Leukocyte count (WBC)',c:'4500-11,000/mm<sup>3</sup>',s:'4.5-11.0 × 10<sup>9</sup>/L'},
+                {i:1,l:'Segmented neutrophils',c:'54%-62%',s:'0.54-0.62'},
+                {i:1,l:'Band forms',c:'3%-5%',s:'0.03-0.05'},
+                {i:1,l:'Eosinophils',c:'1%-3%',s:'0.01-0.03'},
+                {i:1,l:'Basophils',c:'0%-0.75%',s:'0-0.0075'},
+                {i:1,l:'Lymphocytes',c:'25%-33%',s:'0.25-0.33'},
+                {i:1,l:'Monocytes',c:'3%-7%',s:'0.03-0.07'},
+                {l:'CD4+ T-lymphocyte count',c:'≥500/mm<sup>3</sup>',s:'≥0.5 × 10<sup>9</sup>/L'},
+                {l:'Platelet count',c:'150,000-400,000/mm<sup>3</sup>',s:'150-400 × 10<sup>9</sup>/L'},
+                {l:'Reticulocyte count',c:'0.5%-1.5%',s:'0.005-0.015'},
+                {l:'D-Dimer',c:'≤250 ng/mL',s:'≤1.4 nmol/L'},
+                {l:'Partial thromboplastin time (PTT) (activated)',c:'25-40 seconds',s:'25-40 sec'},
+                {l:'Prothrombin time (PT)',c:'11-15 seconds',s:'11-15 sec'},
+                {l:'Mean corpuscular hemoglobin (MCH)',c:'25-35 pg/cell',s:'0.39-0.54 fmol/cell'},
+                {l:'Mean corpuscular hemoglobin concentration (MCHC)',c:'31%-36% Hb/cell',s:'4.8-5.6 mmol Hb/L'},
+                {l:'Mean corpuscular volume (MCV)',c:'80-100 µm<sup>3</sup>',s:'80-100 fL'},
+                {g:1,l:'Volume'},
+                {i:1,l:'Plasma',c:'',s:''},
+                {i:2,l:'Male',c:'25-43 mL/kg',s:'0.025-0.043 L/kg'},
+                {i:2,l:'Female',c:'28-45 mL/kg',s:'0.028-0.045 L/kg'},
+                {i:1,l:'Red cell',c:'',s:''},
+                {i:2,l:'Male',c:'20-36 mL/kg',s:'0.020-0.036 L/kg'},
+                {i:2,l:'Female',c:'19-31 mL/kg',s:'0.019-0.031 L/kg'},
+            ],
+            urine: [
+                {l:'Calcium',c:'100-300 mg/24 h',s:'2.5-7.5 mmol/24 h'},
+                {g:1,l:'Creatinine clearance'},
+                {i:1,l:'Male',c:'97-137 mL/min',s:'97-137 mL/min'},
+                {i:1,l:'Female',c:'88-128 mL/min',s:'88-128 mL/min'},
+                {l:'Osmolality',c:'50-1200 mOsmol/kg H<sub>2</sub>O',s:'50-1200 mOsmol/kg H<sub>2</sub>O'},
+                {l:'Oxalate',c:'8-40 µg/mL',s:'90-445 µmol/L'},
+                {l:'Proteins, total',c:'&lt;150 mg/24 h',s:'&lt;0.15 g/24 h'},
+                {g:1,l:'17-Hydroxycorticosteroids'},
+                {i:1,l:'Male',c:'3.0-10.0 mg/24 h',s:'8.2-27.6 µmol/24 h'},
+                {i:1,l:'Female',c:'2.0-8.0 mg/24 h',s:'5.5-22.0 µmol/24 h'},
+                {g:1,l:'17-Ketosteroids, total'},
+                {i:1,l:'Male',c:'8-20 mg/24 h',s:'28-70 µmol/24 h'},
+                {i:1,l:'Female',c:'6-15 mg/24 h',s:'21-52 µmol/24 h'},
+                {b:1,l:'<strong>Body Mass Index (BMI)</strong>',c:'Adult: 19-25 kg/m<sup>2</sup>',s:'19-25 kg/m<sup>2</sup>'},
+            ],
+        };
+        function lvBuildRows(rows) {
+            let h = '';
+            for (const r of rows) {
+                if (r.g) { h += '<tr><td colspan="2" class="lv-group">' + r.l + '</td></tr>'; continue; }
+                const cls = r.i === 2 ? ' class="lv-indent-2"' : (r.i === 1 ? ' class="lv-indent"' : (r.b ? ' class="lv-group"' : ''));
+                const c = r.c || '';
+                const s = (r.s != null && r.s !== '') ? r.s : (c ? '<span class="lv-na">—</span>' : '');
+                h += '<tr><td' + cls + '>' + r.l + '</td><td><span class="lv-c">' + c + '</span><span class="lv-s">' + s + '</span></td></tr>';
+            }
+            return h;
+        }
+        function lvRenderAll() {
+            const heads = { serum: 'Blood, Plasma, Serum', csf: 'Cerebrospinal Fluid', blood: 'Hematologic', urine: 'Urine and BMI' };
+            ['serum', 'csf', 'blood', 'urine'].forEach(k => {
+                const panel = document.querySelector('.lv-panel[data-panel="' + k + '"]');
+                if (!panel) return;
+                const tb = panel.querySelector('tbody');
+                if (tb) tb.innerHTML = lvBuildRows(LV_DATA[k]);
+                const ths = panel.querySelectorAll('thead th');
+                if (ths[0]) ths[0].textContent = heads[k];
+                if (ths[1]) ths[1].innerHTML = '<span class="lv-c">Reference Range</span><span class="lv-s">SI Reference Intervals</span>';
+            });
+        }
+        lvRenderAll();
+        (function () {
+            const si = document.getElementById('lv-si');
+            const win = document.querySelector('.lv-window');
+            if (si && win) si.addEventListener('change', () => win.classList.toggle('lv-show-si', si.checked));
+        })();
+    </script>
 
     <div class="ma-modal-overlay" id="modal-notes">
         <div class="ma-modal-card">
@@ -2728,7 +3266,7 @@
                             <button class="uw-tool" onclick="if(document.fullscreenElement){document.exitFullscreen();}else{document.documentElement.requestFullscreen();}" title="Toggle full screen">
                                 <span class="uw-tool-icon">⛶</span><span>Full Screen</span>
                             </button>
-                            <button class="uw-tool" onclick="document.getElementById('modal-labs').classList.add('show')" title="Reference Lab Values">
+                            <button class="uw-tool" onclick="nbmeOpenLabValues()" title="Lab Values">
                                 <span class="uw-tool-icon">🧪</span><span>Lab Values</span>
                             </button>
                             <button class="uw-tool ${hasNote ? 'is-active' : ''}" onclick="openNote('${noteKey}')" title="Add or edit a note">
@@ -2798,7 +3336,7 @@
                             <button class="uw-tool" onclick="if(document.fullscreenElement){document.exitFullscreen();}else{document.documentElement.requestFullscreen();}" title="Toggle full screen">
                                 <span class="uw-tool-icon">⛶</span><span>Full Screen</span>
                             </button>
-                            <button class="uw-tool" onclick="document.getElementById('modal-labs').classList.add('show')" title="Reference Lab Values">
+                            <button class="uw-tool" onclick="nbmeOpenLabValues()" title="Lab Values">
                                 <span class="uw-tool-icon">🧪</span><span>Lab Values</span>
                             </button>
                             <button class="uw-tool ${hasNote ? 'is-active' : ''}" onclick="openNote('${noteKey}')" title="Add or edit a note">
