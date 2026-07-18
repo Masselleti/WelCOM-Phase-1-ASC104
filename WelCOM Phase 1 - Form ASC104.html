@@ -462,7 +462,7 @@
         .lab-table td:last-child { font-weight: 800; color: var(--primary); text-align: right; font-family: monospace; white-space: nowrap;}
         html.dark .lab-table td:last-child { color: var(--accent); }
 
-        .question-container img, .explanation-container img, #question-review-container img, img.option-image { max-width: 100% !important; height: auto !important; display: block; margin: 20px auto; border-radius: 12px; object-fit: contain; cursor: pointer; box-shadow: var(--elev-1); border: 1px solid var(--border); transition: transform 0.2s; }
+        .question-container img, .explanation-container img, #question-review-container img, img.option-image { max-width: min(760px, 100%) !important; height: auto !important; display: block; margin: 20px auto; border-radius: 12px; object-fit: contain; cursor: pointer; box-shadow: var(--elev-1); border: 1px solid var(--border); transition: transform 0.2s; }
         img.option-image:active { transform: scale(0.98); }
         @media (min-width: 768px) { img.option-image:hover { transform: scale(1.02); box-shadow: var(--elev-2); border-color: var(--primary); } }
 
