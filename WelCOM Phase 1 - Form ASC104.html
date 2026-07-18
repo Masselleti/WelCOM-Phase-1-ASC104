@@ -1513,6 +1513,29 @@
 /* Keep Mark Question + Copy on one row when .uw-main becomes a flex column. */
 .ma-mark-copy { display: flex; align-items: center; }
 </style>
+<style id="ma-no-image-frame">
+/* ma-no-image-frame (2026-07-17): user asked to remove the border ("square
+   black line") and drop shadow ("shading") framing inline question/explanation
+   images. Both engines; hover re-add neutralized. Rounded corners + click-to-
+   zoom kept. The zoom-modal image keeps its own shadow (separate context). */
+.question-container img,
+.explanation-container img,
+#question-review-container img,
+img.option-image,
+.nbme-skin.uw-skin .question-stem img,
+.nbme-skin.uw-skin .commentary-content img,
+.nbme-skin.uw-skin .answer-option img,
+.question-container img:hover,
+.explanation-container img:hover,
+#question-review-container img:hover,
+img.option-image:hover,
+.nbme-skin.uw-skin .question-stem img:hover,
+.nbme-skin.uw-skin .commentary-content img:hover,
+.nbme-skin.uw-skin .answer-option img:hover {
+    border: 0 !important;
+    box-shadow: none !important;
+}
+</style>
 </head>
 
 <body>
