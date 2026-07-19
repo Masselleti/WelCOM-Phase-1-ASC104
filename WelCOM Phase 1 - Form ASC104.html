@@ -3918,7 +3918,7 @@ img.option-image:hover,
             border-collapse: collapse !important;
             border: 1px solid #b0b8c4 !important;
             margin: 12px 0 !important;
-            width: auto !important;
+            width: fit-content !important; max-width: 100% !important;
         }
         .nbme-skin.uw-skin .question-stem table:has(tr + tr):not(.uw-stem-column-header):not(:has(table)) td,
         .nbme-skin.uw-skin .question-stem table:has(tr + tr):not(.uw-stem-column-header):not(:has(table)) th {
@@ -3934,7 +3934,7 @@ img.option-image:hover,
         /* Match UWorld: hide the empty width-spacer row some stem tables start
            with, so the grid begins at the first data row (UWorld tables have no
            leading empty row). */
-        .nbme-skin.uw-skin .question-stem table:has(tr + tr):not(.uw-stem-column-header):not(:has(table)) tr:first-child:not(:has(td:not(:empty))) {
+        .nbme-skin.uw-skin .question-stem table:has(tr + tr):not(.uw-stem-column-header):not(:has(table)) tr:first-child:not(:has(td:not(:empty))):not(:has(th:not(:empty))) {
             display: none !important;
         }
 </style>
