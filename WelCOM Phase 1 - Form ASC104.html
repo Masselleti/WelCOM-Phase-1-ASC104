@@ -6100,5 +6100,35 @@ html.ma-phone .topbar #ma-sync-btn { flex: 0 0 auto !important; }
     }, true);
 })();
 </script>
+<style id="ma-hl-touch-pin">
+/* ma-hl-touch-pin (2026-07-19): on touch-primary screens wider than the phone
+   gate (iPad), the floating highlight palette anchored at the finger-lift
+   point sat on top of the just-selected text / iOS selection handles. Pin it
+   to a fixed bar above the bottom bar instead - the same fix the phone layout
+   already uses (html.ma-phone rule in ma-phone-fix). html.ma-touch is toggled
+   by the companion script; :not(.ma-phone) leaves the phone rule in charge
+   there. localStorage ma_force_touch='1'/'0' force-overrides for testing. */
+html.ma-touch:not(.ma-phone) #ma-hl-palette,
+html.ma-touch:not(.ma-phone) #highlight-palette {
+    position: fixed !important;
+    left: 50% !important; right: auto !important; top: auto !important;
+    bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+    transform: translateX(-50%) !important;
+    animation: none !important;
+    max-width: calc(100vw - 24px);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.12) !important;
+}
+</style>
+<script id="ma-hl-touch-pin-js">
+(function () {
+    var doc = document.documentElement;
+    var mq = window.matchMedia('(hover: none) and (pointer: coarse)');
+    function forced() { try { return localStorage.getItem('ma_force_touch'); } catch (e) { return null; } }
+    function apply() { var f = forced(); var on = f === '1' ? true : (f === '0' ? false : mq.matches); doc.classList.toggle('ma-touch', on); }
+    apply();
+    if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply);
+    window.addEventListener('pageshow', apply);
+})();
+</script>
 </body>
 </html>
