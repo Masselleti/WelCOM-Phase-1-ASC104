@@ -6055,5 +6055,50 @@ html.ma-phone .topbar #dark-toggle {
 }
 html.ma-phone .topbar #ma-sync-btn { flex: 0 0 auto !important; }
 </style>
+
+<!-- ma-arrow-scroll (2026-07-18): ArrowDown/ArrowUp scroll the page. The desktop
+     exam shell pins body (overflow:hidden) and scrolls inside .uw-main, which
+     never holds keyboard focus, so native arrow-key scrolling is dead there.
+     Scrolls an open popup's pane (Lab Values / modal) first, else the visible
+     scrollable .uw-main, else the document. Left/Right nav, A-F answer keys,
+     Space two-step, and typing in inputs are untouched. -->
+<script id="ma-arrow-scroll-js">
+(function () {
+    'use strict';
+    var STEP = 70;
+    var OPEN_OVERLAYS = '.modal.show, .custom-modal.show, .ma-modal-overlay.show, .time-up-modal.show, #lv-overlay.is-open, #media-modal.show';
+    function editable(t) {
+        return !!(t && t.nodeType === 1 && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
+    }
+    function visible(el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); }
+    function scrollable(el) {
+        if (!el || !visible(el) || el.scrollHeight <= el.clientHeight + 1) return false;
+        var o = getComputedStyle(el).overflowY;
+        return o === 'auto' || o === 'scroll';
+    }
+    function target() {
+        if (document.querySelector(OPEN_OVERLAYS)) {
+            // a popup owns the keys: scroll its pane, never the page behind it
+            var pane = document.querySelector('#lv-overlay.is-open .lv-panel.is-active') ||
+                       document.querySelector('.ma-modal-overlay.show .ma-modal-body') ||
+                       document.querySelector('.modal.show .modal-content');
+            return scrollable(pane) ? pane : null;
+        }
+        var mains = document.querySelectorAll('.nbme-skin.uw-skin .uw-main');
+        for (var i = 0; i < mains.length; i++) if (scrollable(mains[i])) return mains[i];
+        return document.scrollingElement || document.documentElement;
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+        if (e.defaultPrevented || editable(e.target)) return;
+        var el = target();
+        e.preventDefault();
+        // behavior:'instant' sidesteps the dashboard's `scroll-behavior: smooth`,
+        // which otherwise animates each 70px nudge and stalls under key-repeat
+        if (el) el.scrollBy({ top: e.key === 'ArrowDown' ? STEP : -STEP, behavior: 'instant' });
+    }, true);
+})();
+</script>
 </body>
 </html>
