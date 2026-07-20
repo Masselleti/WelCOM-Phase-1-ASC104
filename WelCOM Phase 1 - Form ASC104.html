@@ -6055,65 +6055,6 @@ html.ma-phone .topbar #dark-toggle {
 }
 html.ma-phone .topbar #ma-sync-btn { flex: 0 0 auto !important; }
 </style>
-<style id="ma-hl-touch-pin">
-/* ma-hl-touch-pin v2 (2026-07-19): on touch-primary screens wider than the
-   phone gate (iPad), the palette used to appear at the finger-lift point,
-   covering the just-selected text; v1 bottom-pinned it, but the user prefers
-   it floating just ABOVE the selected area (below it only when there is no
-   room on top) - done by the companion script. html.ma-touch is toggled by
-   that script; the phone (html.ma-phone) keeps its own bottom-bar rule from
-   ma-phone-fix. localStorage ma_force_touch='1'/'0' force-overrides. */
-html.ma-touch:not(.ma-phone) #ma-hl-palette,
-html.ma-touch:not(.ma-phone) #highlight-palette {
-    max-width: calc(100vw - 24px);
-}
-</style>
-<script id="ma-hl-touch-pin-js">
-(function () {
-    var doc = document.documentElement;
-    var mq = window.matchMedia('(hover: none) and (pointer: coarse)');
-    function forced() { try { return localStorage.getItem('ma_force_touch'); } catch (e) { return null; } }
-    function apply() { var f = forced(); var on = f === '1' ? true : (f === '0' ? false : mq.matches); doc.classList.toggle('ma-touch', on); }
-    apply();
-    if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply);
-    window.addEventListener('pageshow', apply);
-
-    // v2: float the palette centered just above the selection's bounding box
-    // (flip below it when the selection is too close to the top of the
-    // viewport). Runs after each engine's own showPalette positioning via a
-    // style MutationObserver; the equality check makes the observer converge
-    // instead of looping on its own writes. Gaps clear the iOS selection
-    // handles' grab balls. Falls back to engine positioning when there is no
-    // live selection to measure.
-    var GAP_ABOVE = 22, GAP_BELOW = 26, EDGE = 8;
-    function reposition(pal) {
-        if (!doc.classList.contains('ma-touch') || doc.classList.contains('ma-phone')) return;
-        if (!pal || pal.style.display === 'none') return;
-        var sel = window.getSelection();
-        if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
-        var rect = sel.getRangeAt(0).getBoundingClientRect();
-        if (!rect || (rect.width === 0 && rect.height === 0)) return;
-        var palW = pal.offsetWidth, palH = pal.offsetHeight;
-        if (!palW || !palH) return;
-        var topV = rect.top - palH - GAP_ABOVE;
-        if (topV < EDGE) topV = rect.bottom + GAP_BELOW;
-        var leftV = rect.left + rect.width / 2 - palW / 2;
-        if (leftV < EDGE) leftV = EDGE;
-        if (leftV + palW > window.innerWidth - EDGE) leftV = window.innerWidth - palW - EDGE;
-        var top = Math.round(topV + window.scrollY) + 'px';
-        var left = Math.round(leftV + window.scrollX) + 'px';
-        if (pal.style.top === top && pal.style.left === left) return;
-        pal.style.top = top; pal.style.left = left;
-    }
-    function watch(id) {
-        var pal = document.getElementById(id);
-        if (!pal) return;
-        new MutationObserver(function () { reposition(pal); }).observe(pal, { attributes: true, attributeFilter: ['style'] });
-    }
-    watch('ma-hl-palette');
-    watch('highlight-palette');
-})();
-</script>
 
 <!-- ma-arrow-scroll (2026-07-18, v2 smooth + v3 PageUp/PageDown 2026-07-20):
      ArrowDown/ArrowUp scroll the page 70px; PageDown/PageUp scroll ~85% of the
@@ -6194,6 +6135,76 @@ html.ma-touch:not(.ma-phone) #highlight-palette {
         var amt = (k === 'PageDown' || k === 'PageUp') ? Math.max(STEP, Math.round(el.clientHeight * 0.85)) : STEP;
         nudge(el, dir, amt);
     }, true);
+})();
+</script>
+<style id="ma-hl-touch-pin">
+/* ma-hl-touch-pin v3 (2026-07-19/20): float the palette centered just ABOVE
+   the selected area on ALL touch layouts - iPad (v2) and now the phone view
+   too (user request 2026-07-20; supersedes ma-phone-fix's fixed-bottom pin
+   from 2026-07-10). The html.ma-phone rule below neutralizes that pin's
+   position/bottom/transform !important declarations (this block sits later in
+   source order, so equal-specificity !important here wins); the companion
+   script then writes top/left inline with 'important' priority to beat the
+   pin's left:50%/top:auto. html.ma-touch is toggled by the companion script;
+   localStorage ma_force_touch='1'/'0' force-overrides (use with
+   ma_force_phone to preview the phone flow on desktop). */
+html.ma-touch #ma-hl-palette, html.ma-phone #ma-hl-palette,
+html.ma-touch #highlight-palette, html.ma-phone #highlight-palette {
+    max-width: calc(100vw - 24px);
+}
+html.ma-phone #ma-hl-palette,
+html.ma-phone #highlight-palette {
+    position: absolute !important;
+    bottom: auto !important;
+    transform: none !important;
+}
+</style>
+<script id="ma-hl-touch-pin-js">
+(function () {
+    var doc = document.documentElement;
+    var mq = window.matchMedia('(hover: none) and (pointer: coarse)');
+    function forced() { try { return localStorage.getItem('ma_force_touch'); } catch (e) { return null; } }
+    function apply() { var f = forced(); var on = f === '1' ? true : (f === '0' ? false : mq.matches); doc.classList.toggle('ma-touch', on); }
+    apply();
+    if (mq.addEventListener) mq.addEventListener('change', apply); else if (mq.addListener) mq.addListener(apply);
+    window.addEventListener('pageshow', apply);
+
+    // v3: float the palette centered just above the selection's bounding box
+    // (flip below it when the selection is too close to the top of the
+    // viewport) on iPad AND phone. Runs after each engine's own showPalette
+    // positioning via a style MutationObserver; the equality check makes the
+    // observer converge instead of looping on its own writes. Writes carry
+    // priority 'important' so they beat the ma-phone-fix pin's left/top
+    // !important on phones. Gaps clear the iOS selection handles' grab balls.
+    // Falls back to engine positioning when there is no selection to measure.
+    var GAP_ABOVE = 22, GAP_BELOW = 26, EDGE = 8;
+    function reposition(pal) {
+        if (!doc.classList.contains('ma-touch') && !doc.classList.contains('ma-phone')) return;
+        if (!pal || pal.style.display === 'none') return;
+        var sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+        var rect = sel.getRangeAt(0).getBoundingClientRect();
+        if (!rect || (rect.width === 0 && rect.height === 0)) return;
+        var palW = pal.offsetWidth, palH = pal.offsetHeight;
+        if (!palW || !palH) return;
+        var topV = rect.top - palH - GAP_ABOVE;
+        if (topV < EDGE) topV = rect.bottom + GAP_BELOW;
+        var leftV = rect.left + rect.width / 2 - palW / 2;
+        if (leftV < EDGE) leftV = EDGE;
+        if (leftV + palW > window.innerWidth - EDGE) leftV = window.innerWidth - palW - EDGE;
+        var top = Math.round(topV + window.scrollY) + 'px';
+        var left = Math.round(leftV + window.scrollX) + 'px';
+        if (pal.style.top === top && pal.style.left === left && pal.style.getPropertyPriority('top') === 'important') return;
+        pal.style.setProperty('top', top, 'important');
+        pal.style.setProperty('left', left, 'important');
+    }
+    function watch(id) {
+        var pal = document.getElementById(id);
+        if (!pal) return;
+        new MutationObserver(function () { reposition(pal); }).observe(pal, { attributes: true, attributeFilter: ['style'] });
+    }
+    watch('ma-hl-palette');
+    watch('highlight-palette');
 })();
 </script>
 </body>
