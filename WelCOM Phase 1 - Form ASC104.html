@@ -6115,16 +6115,18 @@ html.ma-touch:not(.ma-phone) #highlight-palette {
 })();
 </script>
 
-<!-- ma-arrow-scroll (2026-07-18, v2 2026-07-20 smooth): ArrowDown/ArrowUp scroll
-     the page. The desktop exam shell pins body (overflow:hidden) and scrolls
-     inside .uw-main, which never holds keyboard focus, so native arrow-key
+<!-- ma-arrow-scroll (2026-07-18, v2 smooth + v3 PageUp/PageDown 2026-07-20):
+     ArrowDown/ArrowUp scroll the page 70px; PageDown/PageUp scroll ~85% of the
+     visible pane. The desktop exam shell pins body (overflow:hidden) and
+     scrolls inside .uw-main, which never holds keyboard focus, so native key
      scrolling is dead there. Scrolls an open popup's pane (Lab Values / modal)
      first, else the visible scrollable .uw-main, else the document. Left/Right
      nav, A-F answer keys, Space two-step, and typing in inputs are untouched.
-     v2: each press adds 70px to a goal and a rAF animator glides there (smooth
-     even under key auto-repeat). CSS scroll-behavior:smooth is deliberately
-     bypassed (per-frame writes use behavior:'instant') - handing it the scroll
-     stalls under key repeat because every repeat restarts the animation. -->
+     v2: each press adds its step to a goal and a rAF animator glides there
+     (smooth even under key auto-repeat). CSS scroll-behavior:smooth is
+     deliberately bypassed (per-frame writes use behavior:'instant') - handing
+     it the scroll stalls under key repeat because every repeat restarts the
+     animation. -->
 <script id="ma-arrow-scroll-js">
 (function () {
     'use strict';
@@ -6167,26 +6169,30 @@ html.ma-touch:not(.ma-phone) #highlight-palette {
         put(el, cur + remain * (1 - Math.exp(-dt / 110)));   // ease-out, framerate-independent
         anim.raf = requestAnimationFrame(frame);
     }
-    function nudge(el, dir) {
-        if (REDUCED) { put(el, Math.max(0, Math.min(maxScroll(el), el.scrollTop + dir * STEP))); return; }
+    function nudge(el, dir, amt) {
+        if (REDUCED) { put(el, Math.max(0, Math.min(maxScroll(el), el.scrollTop + dir * amt))); return; }
         var cur = el.scrollTop;
         if (anim.el !== el) { anim.el = el; anim.goal = cur; }
         // a stale goal on the wrong side (direction reversal, or the user
         // wheel-scrolled past it mid-glide) would drag the page the wrong way:
         // re-anchor to the current position first
         if ((dir > 0 && anim.goal < cur) || (dir < 0 && anim.goal > cur)) anim.goal = cur;
-        anim.goal = Math.max(0, Math.min(maxScroll(el), anim.goal + dir * STEP));
+        anim.goal = Math.max(0, Math.min(maxScroll(el), anim.goal + dir * amt));
         cancelAnimationFrame(anim.raf);
         anim.last = performance.now();
         anim.raf = requestAnimationFrame(frame);
     }
     document.addEventListener('keydown', function (e) {
-        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        var k = e.key;
+        if (k !== 'ArrowDown' && k !== 'ArrowUp' && k !== 'PageDown' && k !== 'PageUp') return;
         if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
         if (e.defaultPrevented || editable(e.target)) return;
         var el = target();
         e.preventDefault();
-        if (el) nudge(el, e.key === 'ArrowDown' ? 1 : -1);
+        if (!el) return;
+        var dir = (k === 'ArrowDown' || k === 'PageDown') ? 1 : -1;
+        var amt = (k === 'PageDown' || k === 'PageUp') ? Math.max(STEP, Math.round(el.clientHeight * 0.85)) : STEP;
+        nudge(el, dir, amt);
     }, true);
 })();
 </script>
