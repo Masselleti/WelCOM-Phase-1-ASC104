@@ -6055,51 +6055,6 @@ html.ma-phone .topbar #dark-toggle {
 }
 html.ma-phone .topbar #ma-sync-btn { flex: 0 0 auto !important; }
 </style>
-
-<!-- ma-arrow-scroll (2026-07-18): ArrowDown/ArrowUp scroll the page. The desktop
-     exam shell pins body (overflow:hidden) and scrolls inside .uw-main, which
-     never holds keyboard focus, so native arrow-key scrolling is dead there.
-     Scrolls an open popup's pane (Lab Values / modal) first, else the visible
-     scrollable .uw-main, else the document. Left/Right nav, A-F answer keys,
-     Space two-step, and typing in inputs are untouched. -->
-<script id="ma-arrow-scroll-js">
-(function () {
-    'use strict';
-    var STEP = 70;
-    var OPEN_OVERLAYS = '.modal.show, .custom-modal.show, .ma-modal-overlay.show, .time-up-modal.show, #lv-overlay.is-open, #media-modal.show';
-    function editable(t) {
-        return !!(t && t.nodeType === 1 && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
-    }
-    function visible(el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); }
-    function scrollable(el) {
-        if (!el || !visible(el) || el.scrollHeight <= el.clientHeight + 1) return false;
-        var o = getComputedStyle(el).overflowY;
-        return o === 'auto' || o === 'scroll';
-    }
-    function target() {
-        if (document.querySelector(OPEN_OVERLAYS)) {
-            // a popup owns the keys: scroll its pane, never the page behind it
-            var pane = document.querySelector('#lv-overlay.is-open .lv-panel.is-active') ||
-                       document.querySelector('.ma-modal-overlay.show .ma-modal-body') ||
-                       document.querySelector('.modal.show .modal-content');
-            return scrollable(pane) ? pane : null;
-        }
-        var mains = document.querySelectorAll('.nbme-skin.uw-skin .uw-main');
-        for (var i = 0; i < mains.length; i++) if (scrollable(mains[i])) return mains[i];
-        return document.scrollingElement || document.documentElement;
-    }
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
-        if (e.defaultPrevented || editable(e.target)) return;
-        var el = target();
-        e.preventDefault();
-        // behavior:'instant' sidesteps the dashboard's `scroll-behavior: smooth`,
-        // which otherwise animates each 70px nudge and stalls under key-repeat
-        if (el) el.scrollBy({ top: e.key === 'ArrowDown' ? STEP : -STEP, behavior: 'instant' });
-    }, true);
-})();
-</script>
 <style id="ma-hl-touch-pin">
 /* ma-hl-touch-pin v2 (2026-07-19): on touch-primary screens wider than the
    phone gate (iPad), the palette used to appear at the finger-lift point,
@@ -6157,6 +6112,82 @@ html.ma-touch:not(.ma-phone) #highlight-palette {
     }
     watch('ma-hl-palette');
     watch('highlight-palette');
+})();
+</script>
+
+<!-- ma-arrow-scroll (2026-07-18, v2 2026-07-20 smooth): ArrowDown/ArrowUp scroll
+     the page. The desktop exam shell pins body (overflow:hidden) and scrolls
+     inside .uw-main, which never holds keyboard focus, so native arrow-key
+     scrolling is dead there. Scrolls an open popup's pane (Lab Values / modal)
+     first, else the visible scrollable .uw-main, else the document. Left/Right
+     nav, A-F answer keys, Space two-step, and typing in inputs are untouched.
+     v2: each press adds 70px to a goal and a rAF animator glides there (smooth
+     even under key auto-repeat). CSS scroll-behavior:smooth is deliberately
+     bypassed (per-frame writes use behavior:'instant') - handing it the scroll
+     stalls under key repeat because every repeat restarts the animation. -->
+<script id="ma-arrow-scroll-js">
+(function () {
+    'use strict';
+    var STEP = 70;
+    var OPEN_OVERLAYS = '.modal.show, .custom-modal.show, .ma-modal-overlay.show, .time-up-modal.show, #lv-overlay.is-open, #media-modal.show';
+    var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function editable(t) {
+        return !!(t && t.nodeType === 1 && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable));
+    }
+    function visible(el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); }
+    function scrollable(el) {
+        if (!el || !visible(el) || el.scrollHeight <= el.clientHeight + 1) return false;
+        var o = getComputedStyle(el).overflowY;
+        return o === 'auto' || o === 'scroll';
+    }
+    function target() {
+        if (document.querySelector(OPEN_OVERLAYS)) {
+            // a popup owns the keys: scroll its pane, never the page behind it
+            var pane = document.querySelector('#lv-overlay.is-open .lv-panel.is-active') ||
+                       document.querySelector('.ma-modal-overlay.show .ma-modal-body') ||
+                       document.querySelector('.modal.show .modal-content');
+            return scrollable(pane) ? pane : null;
+        }
+        var mains = document.querySelectorAll('.nbme-skin.uw-skin .uw-main');
+        for (var i = 0; i < mains.length; i++) if (scrollable(mains[i])) return mains[i];
+        return document.scrollingElement || document.documentElement;
+    }
+    function maxScroll(el) { return Math.max(0, el.scrollHeight - el.clientHeight); }
+    function put(el, y) {
+        try { el.scrollTo({ top: y, behavior: 'instant' }); } catch (_) { el.scrollTop = y; }
+    }
+    var anim = { el: null, goal: 0, raf: 0, last: 0 };
+    function frame(now) {
+        var el = anim.el;
+        if (!el) return;
+        var dt = Math.min(64, now - anim.last); anim.last = now;
+        var cur = el.scrollTop;
+        var remain = anim.goal - cur;
+        if (Math.abs(remain) < 0.5) { put(el, anim.goal); anim.el = null; return; }
+        put(el, cur + remain * (1 - Math.exp(-dt / 110)));   // ease-out, framerate-independent
+        anim.raf = requestAnimationFrame(frame);
+    }
+    function nudge(el, dir) {
+        if (REDUCED) { put(el, Math.max(0, Math.min(maxScroll(el), el.scrollTop + dir * STEP))); return; }
+        var cur = el.scrollTop;
+        if (anim.el !== el) { anim.el = el; anim.goal = cur; }
+        // a stale goal on the wrong side (direction reversal, or the user
+        // wheel-scrolled past it mid-glide) would drag the page the wrong way:
+        // re-anchor to the current position first
+        if ((dir > 0 && anim.goal < cur) || (dir < 0 && anim.goal > cur)) anim.goal = cur;
+        anim.goal = Math.max(0, Math.min(maxScroll(el), anim.goal + dir * STEP));
+        cancelAnimationFrame(anim.raf);
+        anim.last = performance.now();
+        anim.raf = requestAnimationFrame(frame);
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+        if (e.defaultPrevented || editable(e.target)) return;
+        var el = target();
+        e.preventDefault();
+        if (el) nudge(el, e.key === 'ArrowDown' ? 1 : -1);
+    }, true);
 })();
 </script>
 </body>
