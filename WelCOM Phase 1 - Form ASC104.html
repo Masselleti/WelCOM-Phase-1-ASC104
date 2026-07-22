@@ -2386,7 +2386,9 @@ img.option-image:hover,
             if (index < 0 || index >= currentQuestions.length) return;
             if (index === currentQuestionIndex) return;
             currentQuestionIndex = index;
-            displayQuestion();
+            /* same stale-offset reset as navQ: rail taps, the phone drawer and
+               search jumps all land here (ma-scroll-pin) */
+            Promise.resolve(displayQuestion()).then(() => { if (typeof maResetScrollTop === 'function') maResetScrollTop(); });
         }
         function uwToggleMark(ev, flagKey) {
             ev.stopPropagation();
@@ -3459,7 +3461,7 @@ img.option-image:hover,
                 learningAnswered = true;
                 userAnswers[qId] = { answerId: ansId, isCorrect: isCorrect };
                 const comm = document.getElementById(`commentary-${qId}`);
-                if (comm) comm.classList.add('show');
+                if (comm) maPinScroll(() => comm.classList.add('show'));
                 currentQData.answers.forEach(a => {
                     const o = document.querySelector(`.answer-option[data-option-id="${a.answerID}"]`);
                     if(o) {
@@ -3479,7 +3481,7 @@ img.option-image:hover,
             learningAnswered = true;
             const qId = currentQuestions[currentQuestionIndex].id;
             const comm = document.getElementById('commentary-' + qId);
-            if (comm) comm.classList.add('show');
+            if (comm) maPinScroll(() => comm.classList.add('show'));
             currentQData.answers.forEach(a => {
                 if (a.isCorrect) {
                     const o = document.querySelector('.answer-option[data-option-id="' + a.answerID + '"]');
@@ -3487,6 +3489,67 @@ img.option-image:hover,
                 }
             });
             if (typeof maLoadHighlights === 'function') setTimeout(maLoadHighlights, 50);
+        }
+
+        /* ma-scroll-pin (2026-07-21): iPad Safari remembers a stale window scroll
+           offset across navQ's re-render (the fresh un-revealed question is too
+           short to scroll, so the smooth scrollTo(0) is a no-op) and silently
+           restores it the moment the explanation makes the page tall again.
+           Fix: reset instantly (not smoothly) on nav across every plausible
+           scroller, re-asserting over the next frames to beat WebKit's deferred
+           clamp; and pin the pre-reveal offset when the explanation opens so
+           revealing never moves the page. Desktop is unaffected (its scroller is
+           .uw-main, whose offset these calls leave where it already is). */
+        function maScrollTargets() {
+            const els = [];
+            const m = document.querySelector('.uw-skin .uw-main');
+            if (m) els.push(m);
+            if (document.scrollingElement) els.push(document.scrollingElement);
+            return els;
+        }
+        function maAssertScroll(winY, saved, extraMs) {
+            /* stop any in-flight arrow/page-key glide first: its rAF loop keeps
+               easing toward a goal set on the previous page and would win the
+               fight (and glide the page down when the explanation opens) */
+            if (typeof window.maArrowScrollStop === 'function') window.maArrowScrollStop();
+            let cancelled = false;
+            const put = () => {
+                if (cancelled) return;
+                try { window.scrollTo({ top: winY, left: 0, behavior: 'instant' }); }
+                catch (_) { window.scrollTo(0, winY); }
+                saved.forEach(s => { s.el.scrollTop = s.y; });
+            };
+            /* the instant + first-frame asserts are unconditional (they beat
+               WebKit's stale-offset replay; no human scrolls that fast). The
+               150/450ms tails yield to any user scroll input that lands first,
+               so they can never yank the page out from under a flick or glide. */
+            const onKey = (e) => { const k = e.key; if (k === 'ArrowDown' || k === 'ArrowUp' || k === 'PageDown' || k === 'PageUp') cancel(); };
+            const cancel = () => {
+                cancelled = true;
+                ['wheel', 'touchstart', 'pointerdown'].forEach(t => document.removeEventListener(t, cancel, true));
+                document.removeEventListener('keydown', onKey, true);
+            };
+            put();
+            requestAnimationFrame(() => {
+                put();
+                requestAnimationFrame(put);
+                ['wheel', 'touchstart', 'pointerdown'].forEach(t => document.addEventListener(t, cancel, { capture: true, passive: true }));
+                document.addEventListener('keydown', onKey, true);
+            });
+            setTimeout(put, 150);
+            /* nav only: late image loads re-grow the page, which is when WebKit
+               replays the remembered offset -- keep stomping a little longer */
+            if (extraMs) setTimeout(put, extraMs);
+            setTimeout(cancel, (extraMs || 150) + 60);
+        }
+        function maResetScrollTop() {
+            maAssertScroll(0, maScrollTargets().map(el => ({ el: el, y: 0 })), 450);
+        }
+        function maPinScroll(fn) {
+            const saved = maScrollTargets().map(el => ({ el: el, y: el.scrollTop }));
+            const winY = window.pageYOffset || 0;
+            fn();
+            maAssertScroll(winY, saved);
         }
 
         async function navQ(dir) {
@@ -3497,7 +3560,7 @@ img.option-image:hover,
                 currentQuestionIndex = newIdx;
                 try {
                     await displayQuestion();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    maResetScrollTop();
                 } finally {
                     isNavigating = false;
                 }
@@ -3512,7 +3575,7 @@ img.option-image:hover,
                 isNavigating = true; currentQuestionIndex = newIdx;
                 try {
                     await displayQuestion();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    maResetScrollTop();
                 } finally {
                     isNavigating = false;
                 }
@@ -6100,9 +6163,19 @@ html.ma-phone .topbar #ma-sync-btn { flex: 0 0 auto !important; }
         try { el.scrollTo({ top: y, behavior: 'instant' }); } catch (_) { el.scrollTop = y; }
     }
     var anim = { el: null, goal: 0, raf: 0, last: 0 };
+    /* let the question engine kill an in-flight glide on nav/reveal: a goal
+       accumulated on the previous page must not carry into the next one */
+    window.maArrowScrollStop = function () { cancelAnimationFrame(anim.raf); anim.el = null; };
     function frame(now) {
         var el = anim.el;
         if (!el) return;
+        /* the page may have shrunk since the goal was set (question changed):
+           re-clamp permanently so the loop terminates instead of spinning
+           forever, and so a later content growth (explanation reveal) cannot
+           resurrect the stale goal and glide the page down to it */
+        var mx = maxScroll(el);
+        if (anim.goal > mx) anim.goal = mx;
+        if (anim.goal < 0) anim.goal = 0;
         var dt = Math.min(64, now - anim.last); anim.last = now;
         var cur = el.scrollTop;
         var remain = anim.goal - cur;
