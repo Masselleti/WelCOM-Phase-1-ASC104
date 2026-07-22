@@ -1536,6 +1536,15 @@ img.option-image:hover,
     box-shadow: none !important;
 }
 </style>
+<style id="ma-mobile-bottom-trim">
+/* Phones: the dashboard template's .content 120px + .container 70px bottom
+   gutters stack into ~190px of blank scroll below the last card. Trim them
+   outside the exam view (exam manages its own bottom spacing). */
+@media (max-width: 767px) {
+  body:not(.in-nbme-question) .content { padding-bottom: 24px !important; }
+  body:not(.in-nbme-question) .container { padding-bottom: 0 !important; }
+}
+</style>
 </head>
 
 <body>
