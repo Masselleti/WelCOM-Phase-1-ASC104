@@ -3272,7 +3272,7 @@ img.option-image:hover,
                     const idx = currentQuestionIndex + 1;
                     html = `
                     <div class="uw-header">
-                        <div class="uw-header-left"><div class="uw-header-left-name">WelCOM ASC104</div>
+                        <div class="uw-header-left"><div class="uw-header-left-name">WelCOM ASC104${maSecsSuffix()}</div>
                             <div class="uw-header-left-title">Question</div>
                         </div>
                         <div class="uw-header-iteminfo">
@@ -3342,7 +3342,7 @@ img.option-image:hover,
                     const idx = currentQuestionIndex + 1;
                     html = `
                     <div class="uw-header">
-                        <div class="uw-header-left"><div class="uw-header-left-name">WelCOM ASC104</div>
+                        <div class="uw-header-left"><div class="uw-header-left-name">WelCOM ASC104${maSecsSuffix()}</div>
                             <div class="uw-header-left-title">Question</div>
                         </div>
                         <div class="uw-header-iteminfo">
@@ -6278,6 +6278,44 @@ html.ma-phone #highlight-palette {
     }
     watch('ma-hl-palette');
     watch('highlight-palette');
+})();
+</script>
+
+<!-- ma-header-sections (2026-07-21): the top-left name box also lists which of
+     this viewer's sections are in the current session ("Sections 1/2"; phone
+     shows the short "Sec." form). GROUPS baked from the data.db Subjects table at patch
+     time (header_secs_fleet.py). The suffix derives from the LIVE session ids
+     (currentQuestions), so it holds for picker selections, discipline/system
+     picks, shuffled exam blocks, and resumed sessions alike. Full coverage or
+     a single group -> no suffix. -->
+<style id="ma-header-secs-css">
+.ma-secs-short { display: none; }
+html.ma-phone .ma-secs-long { display: none; }
+html.ma-phone .ma-secs-short { display: inline; }
+</style>
+<script id="ma-header-secs-js">
+(function () {
+    if (window.maSecsSuffix) return;   /* double-insertion sentinel */
+    var GROUPS = [{"n":"1","s":1,"e":25},{"n":"2","s":26,"e":50},{"n":"3","s":51,"e":75}];
+    var UNIT = "Section", UNIT_SHORT = "Sec.";
+    window.maSecsSuffix = function () {
+        try {
+            var qs = (typeof currentQuestions !== 'undefined' && currentQuestions) ? currentQuestions : [];
+            if (!qs.length || GROUPS.length < 2) return '';
+            var present = [];
+            for (var i = 0; i < GROUPS.length; i++) {
+                var g = GROUPS[i];
+                for (var j = 0; j < qs.length; j++) {
+                    var id = qs[j] && qs[j].id;
+                    if (g.ids ? g.ids.indexOf(id) >= 0 : (id >= g.s && id <= g.e)) { present.push(g.n); break; }
+                }
+            }
+            if (!present.length || present.length === GROUPS.length) return '';
+            var nums = present.join('/');
+            var long_ = UNIT + (present.length > 1 ? 's' : '') + ' ' + nums;
+            return ' <span class="ma-secs-long">' + long_ + '</span><span class="ma-secs-short">' + UNIT_SHORT + ' ' + nums + '</span>';
+        } catch (e) { return ''; }
+    };
 })();
 </script>
 </body>
