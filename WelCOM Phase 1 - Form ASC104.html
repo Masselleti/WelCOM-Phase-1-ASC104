@@ -2286,7 +2286,7 @@ img.option-image:hover,
             }
         });
 
-        document.getElementById('btn-font-inc').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1.15; if (f < 1.5) { f += 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
+        document.getElementById('btn-font-inc').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1.15; if (f < 1.55) { f += 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
         document.getElementById('btn-font-dec').onclick = () => { let f = parseFloat(localStorage.getItem('ma_font_scale')) || 1.15; if (f > 0.8) { f -= 0.05; document.documentElement.style.setProperty('--text-scale', f.toFixed(2)); localStorage.setItem('ma_font_scale', f.toFixed(2)); } };
 
         const btnZen = document.getElementById('btn-zen');
