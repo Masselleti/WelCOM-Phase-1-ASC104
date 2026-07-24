@@ -6345,18 +6345,21 @@ html.ma-phone .ma-secs-short { display: inline; }
     margin: 0 0 12px 10px; padding: 2px 7px; background: transparent; border: 0; border-radius: 8px;
     cursor: pointer; font-size: 16px; line-height: 1; vertical-align: middle;
     -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-.ma-bmk-btn .ma-bmk-ico { filter: grayscale(1); opacity: .38; transition: opacity .15s, filter .15s; }
-.ma-bmk-btn.is-on .ma-bmk-ico { filter: none; opacity: 1; }
+.ma-bmk-btn .ma-bmk-ico { width: 16px; height: 16px; display: block; }
+.ma-bmk-btn .ma-bmk-ico path { fill: none; stroke: #4C9FE0; stroke-width: 1.7; stroke-linejoin: round; transition: fill .15s ease, stroke .15s ease; }
+.ma-bmk-btn.is-on .ma-bmk-ico path { fill: #4C9FE0; stroke: #4C9FE0; }
 @media (hover: hover) and (pointer: fine) {
-    .ma-bmk-btn:hover .ma-bmk-ico { opacity: .75; }
-    .ma-bmk-btn.is-on:hover .ma-bmk-ico { opacity: 1; }
+    .ma-bmk-btn:hover .ma-bmk-ico path { fill: rgba(76,159,224,.18); }
+    .ma-bmk-btn.is-on:hover .ma-bmk-ico path { fill: #4C9FE0; }
 }
 /* inside the .ma-mark-copy flex wrapper the row spacing lives on the wrapper */
 .ma-mark-copy > .ma-bmk-btn { margin-bottom: 0; }
 html.ma-phone .ma-bmk-btn { margin-bottom: 5px; }
 html.ma-phone .ma-mark-copy > .ma-bmk-btn { margin-bottom: 0; }
 /* rail badge: right-aligned like the 🚩 (flex row), tucks beside it when both show */
-.uw-q-bmk { margin-left: auto; font-size: 12px; line-height: 1; }
+.uw-q-bmk { margin-left: auto; line-height: 1; display: inline-flex; align-items: center; }
+.uw-q-bmk svg { width: 12px; height: 12px; display: block; }
+.uw-q-bmk svg path { fill: #4C9FE0; }
 .uw-q-flag + .uw-q-bmk { margin-left: 3px; }
 </style>
 <script id="ma-bmk-js">
@@ -6399,7 +6402,7 @@ html.ma-phone .ma-mark-copy > .ma-bmk-btn { margin-bottom: 0; }
                 btn.type = 'button';
                 btn.className = 'ma-bmk-btn';
                 btn.setAttribute('aria-label', 'Bookmark question');
-                btn.innerHTML = '<span class="ma-bmk-ico">\uD83D\uDD16</span>';
+                btn.innerHTML = '<svg class="ma-bmk-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 H17 A2 2 0 0 1 19 5 V21 L12 15.5 L5 21 V5 A2 2 0 0 1 7 3 Z"/></svg>';
                 btn.addEventListener('click', onClick, false);
                 mark.parentNode.insertBefore(btn, mark.nextSibling);
             }
@@ -6429,7 +6432,7 @@ html.ma-phone .ma-mark-copy > .ma-bmk-btn { margin-bottom: 0; }
                 if (on && !badge) {
                     badge = document.createElement('span');
                     badge.className = 'uw-q-bmk';
-                    badge.textContent = '\uD83D\uDD16';
+                    badge.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 H17 A2 2 0 0 1 19 5 V21 L12 15.5 L5 21 V5 A2 2 0 0 1 7 3 Z"/></svg>';
                     items[i].appendChild(badge);
                 } else if (!on && badge) {
                     badge.parentNode.removeChild(badge);
