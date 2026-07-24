@@ -47,7 +47,8 @@
       try { ss = window.sessionStorage; } catch (e) {}
       function isHL(k) { return typeof k === 'string' && k.indexOf('ma_hl_') === 0; }
       function isFlag(k) { return typeof k === 'string' && k.indexOf('MA_FLAG|||') === 0; }
-      function isPersist(k) { return isHL(k) || isFlag(k); }
+      function isBmk(k) { return typeof k === 'string' && k.indexOf('MA_BMK|||') === 0; }
+      function isPersist(k) { return isHL(k) || isFlag(k) || isBmk(k); }
       function isEngineEphemeral(k) {
         if (typeof k !== 'string') return false;
         if (k === 'ma_theme' || k === 'ma_font_scale' || k === 'ma_suspended_exam' || k === 'maSplashShown') return true;
@@ -5451,8 +5452,8 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
   } catch (e) { real = null; }
   if (!real) return;
 
-  var HLP = 'ma_hl_' + DB + '_', FLP = 'MA_FLAG|||' + DB + '|||';
-  function ours(k) { return typeof k === 'string' && (k.indexOf(HLP) === 0 || k.indexOf(FLP) === 0); }
+  var HLP = 'ma_hl_' + DB + '_', FLP = 'MA_FLAG|||' + DB + '|||', BMP = 'MA_BMK|||' + DB + '|||';
+  function ours(k) { return typeof k === 'string' && (k.indexOf(HLP) === 0 || k.indexOf(FLP) === 0 || k.indexOf(BMP) === 0); }
 
   var META_KEY = 'ma_sync_meta_' + DB;
   var meta = { t: {}, gone: {}, sha: null, last: 0, dirty: false };
@@ -5611,7 +5612,7 @@ html.ma-phone #ma-search-results { max-height: 44vh; }
       try {
         if (document.body.classList.contains('in-nbme-question')) {
           if (typeof maLoadHighlights === 'function') maLoadHighlights();
-          refreshFlagUI();
+          refreshFlagUI(); if (typeof window.maBmkRefresh === 'function') window.maBmkRefresh();
         }
       } catch (e) {}
     }
@@ -6327,5 +6328,152 @@ html.ma-phone .ma-secs-short { display: inline; }
     };
 })();
 </script>
+
+<!-- ma-bookmark (2026-07-24): bookmark toggle to the RIGHT of "Mark Question"
+     (user request). Behaves exactly like Mark: per-question, persists across
+     sessions (MA_BMK|||<db>|||<id>, value 'true', removed when off - rides the
+     same hybrid persistence and, where present, the ma-sync-github sync as
+     MA_FLAG), 🔖 badge in the question rail next to the 🚩, hotkey k (b would
+     select answer choice B). The button is (re)injected after every
+     .uw-mark-row - both engines keep dual learning/exam containers with
+     duplicate ids, so iterate every row and derive each row's key from ITS
+     baked MA_FLAG onclick, never from "current question" state. ensure() runs
+     synchronously in the observer (fleet convention) and is write-guarded so
+     its own mutations can't feed back. -->
+<style id="ma-bmk-css">
+.ma-bmk-btn { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+    margin: 0 0 12px 10px; padding: 2px 7px; background: transparent; border: 0; border-radius: 8px;
+    cursor: pointer; font-size: 16px; line-height: 1; vertical-align: middle;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.ma-bmk-btn .ma-bmk-ico { filter: grayscale(1); opacity: .38; transition: opacity .15s, filter .15s; }
+.ma-bmk-btn.is-on .ma-bmk-ico { filter: none; opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+    .ma-bmk-btn:hover .ma-bmk-ico { opacity: .75; }
+    .ma-bmk-btn.is-on:hover .ma-bmk-ico { opacity: 1; }
+}
+/* inside the .ma-mark-copy flex wrapper the row spacing lives on the wrapper */
+.ma-mark-copy > .ma-bmk-btn { margin-bottom: 0; }
+html.ma-phone .ma-bmk-btn { margin-bottom: 5px; }
+html.ma-phone .ma-mark-copy > .ma-bmk-btn { margin-bottom: 0; }
+/* rail badge: right-aligned like the 🚩 (flex row), tucks beside it when both show */
+.uw-q-bmk { margin-left: auto; font-size: 12px; line-height: 1; }
+.uw-q-flag + .uw-q-bmk { margin-left: 3px; }
+</style>
+<script id="ma-bmk-js">
+(function () {
+    'use strict';
+    if (window.__maBmkLoaded) return;   /* double-insertion sentinel */
+    window.__maBmkLoaded = true;
+    var PRE = 'MA_BMK|||';
+    function isOn(key) { try { return localStorage.getItem(key) === 'true'; } catch (e) { return false; } }
+    function keyFromRow(mark) {
+        var cb = mark.querySelector('input[type="checkbox"]');
+        var m = cb && /MA_FLAG\|\|\|[^'"]*/.exec(cb.getAttribute('onclick') || '');
+        return m ? PRE + m[0].slice(10) : null;   /* 10 = 'MA_FLAG|||'.length */
+    }
+    function paint(btn, on) {
+        btn.classList.toggle('is-on', !!on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        btn.title = on ? 'Remove bookmark (k)' : 'Bookmark question (k)';
+    }
+    function onClick(ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        var btn = ev.currentTarget, key = btn.getAttribute('data-bmk-key');
+        if (!key) return;
+        var on = !isOn(key);
+        try { if (on) localStorage.setItem(key, 'true'); else localStorage.removeItem(key); } catch (e) {}
+        paint(btn, on);
+        try { if (typeof uwRenderSidebar === 'function') uwRenderSidebar(); } catch (e) {}
+        railSoon();
+    }
+    function ensure() {
+        var body = document.body;
+        if (!body || !body.classList.contains('in-nbme-question')) return;
+        var marks = document.querySelectorAll('.uw-mark-row');
+        for (var i = 0; i < marks.length; i++) {
+            var mark = marks[i], key = keyFromRow(mark);
+            if (!key || !mark.parentNode) continue;
+            var btn = mark.nextElementSibling;
+            if (!btn || !btn.classList || !btn.classList.contains('ma-bmk-btn')) {
+                btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ma-bmk-btn';
+                btn.setAttribute('aria-label', 'Bookmark question');
+                btn.innerHTML = '<span class="ma-bmk-ico">\uD83D\uDD16</span>';
+                btn.addEventListener('click', onClick, false);
+                mark.parentNode.insertBefore(btn, mark.nextSibling);
+            }
+            if (btn.getAttribute('data-bmk-key') !== key) btn.setAttribute('data-bmk-key', key);
+            paint(btn, isOn(key));
+        }
+        /* defense-in-depth: drop any bookmark button that isn't the immediate
+           sibling right after a .uw-mark-row (a feature that re-parents the
+           Mark/Copy row - e.g. ma-touch-reveal - could otherwise strand one) */
+        var all = document.querySelectorAll('.ma-bmk-btn');
+        for (var j = 0; j < all.length; j++) {
+            var el = all[j], prev = el.previousElementSibling;
+            if ((!prev || !prev.classList || !prev.classList.contains('uw-mark-row')) && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        }
+    }
+    function decorateRail() {
+        try {
+            if (typeof currentQuestions === 'undefined' || !currentQuestions || !currentQuestions.length) return;
+            var items = document.querySelectorAll('#uw-sidebar .uw-q-item');
+            var n = Math.min(items.length, currentQuestions.length);
+            for (var i = 0; i < n; i++) {
+                var q = currentQuestions[i];
+                var on = !!(q && isOn(PRE + q.dbPath + '|||' + q.id));
+                var badge = items[i].querySelector('.uw-q-bmk');
+                if (on && !badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'uw-q-bmk';
+                    badge.textContent = '\uD83D\uDD16';
+                    items[i].appendChild(badge);
+                } else if (!on && badge) {
+                    badge.parentNode.removeChild(badge);
+                }
+                if (items[i].classList.contains('is-bmk') !== on) items[i].classList.toggle('is-bmk', on);
+            }
+        } catch (e) {}
+    }
+    /* decorate right after the engine (or the sync block) rebuilds the rail */
+    (function hookRail() {
+        var prev = window.uwRenderSidebar;
+        if (typeof prev === 'function' && !prev.__maBmk) {
+            var w = function () { var r = prev.apply(this, arguments); try { decorateRail(); } catch (e) {} return r; };
+            w.__maBmk = true;
+            window.uwRenderSidebar = w;
+        }
+    })();
+    /* rAF-deduped rail pass for rebuild paths that bypass the wrapper */
+    var railQueued = false;
+    function railSoon() {
+        if (railQueued) return;
+        railQueued = true;
+        requestAnimationFrame(function () { railQueued = false; decorateRail(); });
+    }
+    /* remote-sync hook: ma-sync-github calls this after merging remote changes */
+    window.maBmkRefresh = function () { try { ensure(); decorateRail(); } catch (e) {} };
+    /* hotkey: k toggles the bookmark on the visible card (same guards as ma-hotkeys' m) */
+    document.addEventListener('keydown', function (e) {
+        if (e.repeat) return;
+        if ((e.key !== 'k' && e.key !== 'K') || e.metaKey || e.ctrlKey || e.altKey) return;
+        var t = e.target;
+        if (t && t.nodeType === 1 && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+        if (!document.body.classList.contains('in-nbme-question')) return;
+        var btns = document.querySelectorAll('.ma-bmk-btn');
+        for (var i = 0; i < btns.length; i++) {
+            if (btns[i].offsetParent !== null) { e.preventDefault(); e.stopPropagation(); btns[i].click(); return; }
+        }
+    }, true);
+    var mo = new MutationObserver(function () { ensure(); railSoon(); });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { ensure(); railSoon(); });
+    ensure(); railSoon();
+})();
+</script>
+
 </body>
 </html>
