@@ -6361,6 +6361,16 @@ html.ma-phone .ma-mark-copy > .ma-bmk-btn { margin-bottom: 0; }
 .uw-q-bmk svg { width: 12px; height: 12px; display: block; }
 .uw-q-bmk svg path { fill: #4C9FE0; }
 .uw-q-flag + .uw-q-bmk { margin-left: 3px; }
+
+/* ma-bmk-fit (2026-07-24): a row that is both marked and bookmarked overflowed
+   the pinned rail (88px desktop / 80px touch) - the 8px flex gap between every
+   child plus the flag pushed the bookmark past the right edge, clipping it to
+   a sliver (user screenshot). When both badges share a row, tighten just that
+   row so bullet + number + flag + bookmark all fit. */
+.uw-q-item.is-flagged.is-bmk { gap: 4px; padding-right: 4px; }
+.uw-q-item.is-flagged.is-bmk .uw-q-flag { font-size: 12px; }
+.uw-q-item.is-flagged.is-bmk .uw-q-flag + .uw-q-bmk { margin-left: 0; }
+.uw-q-item.is-flagged.is-bmk .uw-q-bmk svg { width: 11px; height: 11px; }
 </style>
 <script id="ma-bmk-js">
 (function () {
