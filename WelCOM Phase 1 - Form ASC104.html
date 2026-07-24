@@ -6390,12 +6390,40 @@ html.ma-phone .ma-mark-copy > .ma-bmk-btn { margin-bottom: 0; }
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         btn.title = on ? 'Remove bookmark (k)' : 'Bookmark question (k)';
     }
+    /* ma-bmk-single (2026-07-24): the bookmark is single-use - setting it on a
+       question MOVES it there and the previously bookmarked question loses it
+       (user request). A persistent pointer key (MA_BMK|||__cur__|||<viewer dir>)
+       remembers the current bookmark: the MA_BMK||| prefix makes the hybrid shim
+       persist it, '__cur__' never matches a real dbPath so the sync block skips
+       it, and the viewer-dir suffix keeps pointers apart when viewers share an
+       origin. The loaded session is also swept on set so a stale pointer (e.g.
+       after a remote sync merge) cannot leave a second bookmark behind. */
+    var CUR = PRE + '__cur__|||' + (location.pathname.replace(/\/[^\/]*$/, '') || '/');
+    function clearPrev(newKey) {
+        try {
+            var old = localStorage.getItem(CUR);
+            if (old && old !== newKey && old.indexOf(PRE) === 0) localStorage.removeItem(old);
+        } catch (e) {}
+        try {
+            if (typeof currentQuestions !== 'undefined' && currentQuestions && currentQuestions.length) {
+                for (var i = 0; i < currentQuestions.length; i++) {
+                    var q = currentQuestions[i];
+                    if (!q) continue;
+                    var k = PRE + q.dbPath + '|||' + q.id;
+                    if (k !== newKey && isOn(k)) localStorage.removeItem(k);
+                }
+            }
+        } catch (e) {}
+    }
     function onClick(ev) {
         ev.preventDefault(); ev.stopPropagation();
         var btn = ev.currentTarget, key = btn.getAttribute('data-bmk-key');
         if (!key) return;
         var on = !isOn(key);
-        try { if (on) localStorage.setItem(key, 'true'); else localStorage.removeItem(key); } catch (e) {}
+        try {
+            if (on) { clearPrev(key); localStorage.setItem(key, 'true'); localStorage.setItem(CUR, key); }
+            else { localStorage.removeItem(key); if (localStorage.getItem(CUR) === key) localStorage.removeItem(CUR); }
+        } catch (e) {}
         paint(btn, on);
         try { if (typeof uwRenderSidebar === 'function') uwRenderSidebar(); } catch (e) {}
         railSoon();
