@@ -3328,7 +3328,7 @@ img.option-image:hover,
                             <label class="uw-mark-row" id="uw-mark-row">
                                 <input type="checkbox" id="uw-mark-cb" ${isFlagged ? 'checked' : ''} onclick="window.uwToggleMark(event, '${flagKey}');">
                                 <span class="uw-mark-flag">🚩</span>
-                                <span>Mark Question</span>
+                                <span>Mark</span>
                             </label><button type="button" class="uw-copy-btn" onclick="uwCopyQuestion(this)" title="Copy question and answer choices">⧉ Copy</button>
                             <div class="question-stem">${processContent(qData.question)}</div>
                             <div class="answer-options">${generateAnswerOptionsHTML(qData.answers, qObj.id, isExam, false)}</div>
@@ -3398,7 +3398,7 @@ img.option-image:hover,
                             <label class="uw-mark-row" id="uw-mark-row">
                                 <input type="checkbox" id="uw-mark-cb" ${isFlagged ? 'checked' : ''} onclick="window.uwToggleMark(event, '${flagKey}');">
                                 <span class="uw-mark-flag">🚩</span>
-                                <span>Mark Question</span>
+                                <span>Mark</span>
                             </label><button type="button" class="uw-copy-btn" onclick="uwCopyQuestion(this)" title="Copy question and answer choices">⧉ Copy</button>
                             <div class="question-stem">${processContent(qData.question)}</div>
                             <div class="answer-options">${generateAnswerOptionsHTML(qData.answers, qObj.id, isExam, examTimeExpired)}</div>
